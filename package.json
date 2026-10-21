@@ -1,0 +1,17 @@
+{
+  "name": "smartdesk-ai-customer-support",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "format": "prettier --write \"client/src/**/*.{js,jsx,css}\" \"client/*.{html,js,json}\" \"server/src/**/*.js\" \"server/*.json\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"client/src/**/*.{js,jsx,css}\" \"client/*.{html,js,json}\" \"server/src/**/*.js\" \"server/*.json\" \"*.{json,md}\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2"
+  }
+}

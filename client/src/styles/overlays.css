@@ -1,0 +1,128 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #1d2c2470;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  backdrop-filter: blur(3px);
+}
+.new-ticket-modal,
+.article-modal {
+  width: min(540px, 100%);
+  background: #fff;
+  border-radius: 13px;
+  padding: 22px;
+  box-shadow: 0 20px 70px #1c322344;
+}
+.modal-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.modal-heading h2,
+.article-modal h2 {
+  font: 700 20px var(--display);
+  letter-spacing: -0.7px;
+  color: #2c3931;
+  margin: 6px 0;
+}
+.modal-heading p {
+  font-size: 10px;
+  color: #89948c;
+  margin: 0;
+}
+.new-ticket-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  color: #66726a;
+  font-size: 9px;
+  font-weight: 600;
+}
+.new-ticket-modal input,
+.new-ticket-modal textarea {
+  width: 100%;
+  border: 1px solid #e6ebe6;
+  border-radius: 6px;
+  padding: 9px 10px;
+  font-size: 10px;
+  outline: none;
+  color: #39453d;
+}
+.new-ticket-modal input:focus,
+.new-ticket-modal textarea:focus {
+  border-color: #9bb69f;
+}
+.new-ticket-modal input::placeholder,
+.new-ticket-modal textarea::placeholder {
+  color: #adb5af;
+  font-weight: 400;
+}
+.form-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.modal-footer {
+  border-top: 1px solid #edf0ed;
+  margin-top: 15px;
+  padding-top: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-footer > span {
+  color: #9aa39c;
+  font-size: 8px;
+}
+.article-modal {
+  position: relative;
+  width: min(480px, 100%);
+  padding: 28px;
+}
+.article-close {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+}
+.article-modal h2 {
+  font-size: 21px;
+  margin: 8px 0 13px;
+}
+.article-modal > p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #6b776e;
+}
+.article-modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid #edf0ed;
+  margin-top: 18px;
+  padding-top: 13px;
+  color: #87948a;
+  font-size: 9px;
+}
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 23px;
+  z-index: 20;
+  background: #263b2e;
+  color: white;
+  border-radius: 8px;
+  padding: 11px 14px;
+  box-shadow: 0 7px 24px #1d332838;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+.toast svg {
+  color: #b5d2b5;
+}

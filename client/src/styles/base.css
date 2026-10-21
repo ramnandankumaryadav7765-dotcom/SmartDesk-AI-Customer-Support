@@ -1,0 +1,37 @@
+:root {
+  font-family: 'DM Sans', sans-serif;
+  color: #202b27;
+  background: #f6f7f4;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  font-weight: 400;
+  --ink: #202b27;
+  --muted: #808985;
+  --line: #e9ece8;
+  --green: #426d59;
+  --green-dark: #305541;
+  --soft-green: #edf4ef;
+  --sidebar: #fff;
+  --panel: #fff;
+  --display: 'Manrope', sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+}
+.app-shell {
+  min-height: 100vh;
+}

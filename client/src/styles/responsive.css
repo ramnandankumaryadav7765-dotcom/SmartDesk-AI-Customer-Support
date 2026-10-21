@@ -1,0 +1,266 @@
+@media (max-width: 1100px) {
+  .sidebar {
+    width: 215px;
+  }
+  .main-area {
+    margin-left: 215px;
+  }
+  .page-content {
+    padding-left: 27px;
+    padding-right: 27px;
+  }
+  .topbar {
+    padding: 0 27px;
+  }
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .content-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  }
+  .inbox-layout {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+}
+@media (max-width: 780px) {
+  .sidebar {
+    width: 64px;
+    padding: 20px 9px 12px;
+  }
+  .brand {
+    padding: 0 9px;
+  }
+  .brand > span,
+  .workspace-copy,
+  .workspace-switch > svg,
+  .sidebar-label,
+  .nav-item span,
+  .nav-count,
+  .team-row > span:not(.avatar),
+  .plan-card,
+  .profile-button > div:nth-child(2),
+  .profile-button > svg {
+    display: none;
+  }
+  .workspace-switch {
+    height: 42px;
+    width: 42px;
+    padding: 4px;
+    justify-content: center;
+    margin: 25px auto 15px;
+  }
+  .nav-item {
+    justify-content: center;
+    padding: 0;
+  }
+  .team-row {
+    justify-content: center;
+    padding: 0;
+  }
+  .team-row .avatar {
+    height: 28px;
+    width: 28px;
+  }
+  .profile-button {
+    justify-content: center;
+    padding: 12px 0 2px;
+  }
+  .main-area {
+    margin-left: 64px;
+  }
+  .topbar {
+    padding: 0 16px;
+  }
+  .page-content {
+    padding: 30px 16px;
+  }
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+  .right-stack {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+  }
+  .inbox-layout {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+  .ticket-detail-head {
+    padding: 20px 16px;
+  }
+  .conversation-thread {
+    padding: 20px 16px;
+  }
+  .reply-area {
+    padding: 12px 14px;
+  }
+  .welcome-row h1 {
+    font-size: 24px;
+  }
+}
+@media (max-width: 580px) {
+  .topbar {
+    height: 56px;
+  }
+  .breadcrumbs {
+    font-size: 10px;
+  }
+  .search-box {
+    width: 34px;
+    padding: 0 8px;
+  }
+  .search-box input,
+  .search-box kbd {
+    display: none;
+  }
+  .top-actions {
+    gap: 9px;
+  }
+  .page-content {
+    padding: 23px 12px;
+  }
+  .welcome-row {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .welcome-row h1 {
+    font-size: 21px;
+  }
+  .welcome-row p {
+    max-width: 230px;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  .welcome-row > .primary-button {
+    height: 32px;
+    padding: 0 9px;
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  .metric-grid {
+    gap: 8px;
+  }
+  .metric-card {
+    height: 129px;
+    padding: 12px;
+  }
+  .metric-value {
+    font-size: 23px;
+  }
+  .metric-note {
+    font-size: 8px;
+  }
+  .content-grid {
+    margin-top: 10px;
+  }
+  .conversation-panel {
+    padding: 14px 12px 0;
+  }
+  .right-stack {
+    grid-template-columns: 1fr;
+  }
+  .footer-note {
+    font-size: 8px;
+  }
+  .inbox-layout {
+    height: calc(100vh - 56px);
+    display: flex;
+    flex-direction: column;
+  }
+  .inbox-list-pane {
+    height: 43%;
+    min-height: 230px;
+    border-right: 0;
+    border-bottom: 1px solid #e9ece8;
+  }
+  .inbox-title-row {
+    padding: 13px 14px 9px;
+  }
+  .inbox-title-row h1 {
+    font-size: 19px;
+  }
+  .filter-tabs {
+    height: 31px;
+  }
+  .ticket-row {
+    padding: 9px 12px;
+  }
+  .ticket-row p {
+    max-width: 250px;
+  }
+  .ticket-detail-pane {
+    flex: 1;
+    min-height: 0;
+  }
+  .ticket-detail-head {
+    padding: 12px;
+  }
+  .ticket-detail-head h2 {
+    font-size: 13px;
+  }
+  .ticket-head-meta {
+    font-size: 7px;
+    gap: 4px;
+  }
+  .detail-actions .icon-button {
+    display: none;
+  }
+  .resolve-button {
+    font-size: 8px;
+    padding: 0 6px;
+  }
+  .conversation-thread {
+    padding: 9px 12px;
+  }
+  .customer-bubble,
+  .staff-bubble {
+    font-size: 9px;
+    padding: 9px;
+    max-width: calc(100vw - 150px);
+  }
+  .message-row {
+    margin: 10px 0;
+  }
+  .reply-area {
+    padding: 9px;
+  }
+  .reply-toolbar {
+    margin-bottom: 5px;
+  }
+  .reply-area textarea {
+    height: 43px;
+  }
+  .data-count {
+    font-size: 8px;
+  }
+  .knowledge-grid {
+    grid-template-columns: 1fr;
+  }
+  .knowledge-intro {
+    padding: 11px;
+  }
+  .article-total {
+    display: none;
+  }
+  .data-panel .panel-heading {
+    padding: 13px;
+  }
+  .error-banner {
+    margin: 10px 12px 0;
+    font-size: 9px;
+  }
+  .form-two {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .new-ticket-modal {
+    padding: 17px;
+  }
+  .modal-footer {
+    align-items: flex-start;
+    gap: 10px;
+    flex-direction: column;
+  }
+  .footer-note span:first-child {
+    max-width: 160px;
+  }
+}
