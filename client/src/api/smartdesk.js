@@ -43,6 +43,6 @@ export const smartdeskApi = {
   setTicketStatus: (id, status) => sendJson(`/tickets/${id}`, { status }, 'PATCH'),
   saveReply: (id, text) => sendJson(`/tickets/${id}/reply`, { text }),
   draftReply: (message) => sendJson('/assistant/draft', { message }),
-  askAssistant: (message) => sendJson('/assistant/ask', { message }),
+  askAssistant: (message, history = []) => sendJson('/assistant/ask', { message, history: history.slice(-8) }),
   createArticle: (article) => sendJson('/knowledge', article),
 };

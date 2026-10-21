@@ -20,31 +20,36 @@ export function findRelevantArticle(question, articles) {
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export async function callAssistant(question, accountContext) {
+export async function callAssistant(question, accountContext, history = []) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('AI is not connected yet. Add a Gemini API key in server/.env.');
   }
   const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
   const contents = [
-    {
-      role: 'user',
-      parts: [
-        {
-          text: `You are SmartDesk's helpful account assistant. Answer general product and support questions. When the user asks about their account, use only the private account information provided below. Be clear when information is missing. Never claim you changed a record, contacted a customer, sent an email, or completed an action; explain how the user can do it in SmartDesk. Keep answers useful and concise.\n\nPrivate account information:\n${accountContext}\n\nUser request:\n${question}`,
-        },
-      ],
-    },
+    ...history.slice(-8).map(({ role, text }) => ({
+      role: role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: String(text).slice(0, 1500) }],
+    })),
+    { role: 'user', parts: [{ text: question }] },
   ];
+  const systemInstruction = {
+    parts: [
+      {
+        text: `You are SmartDesk's helpful account assistant. Answer general product and support questions. For account questions, use only the private account information below. Be clear when information is missing. Never claim you changed a record, contacted a customer, sent an email, or completed an action. Keep answers concise and useful.\n\nPrivate account information:\n${accountContext}`,
+      },
+    ],
+  };
 
   let lastError;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents,
-        generationConfig: { temperature: 0.35, maxOutputTokens: 700 },
+        systemInstruction,
+        generationConfig: { temperature: 0.25, maxOutputTokens: 450 },
       }),
     });
     const payload = await response.json().catch(() => ({}));
@@ -57,9 +62,9 @@ export async function callAssistant(question, accountContext) {
       throw new Error('Gemini returned an empty response. Please try again.');
     }
     const message = payload.error?.message || `Gemini request failed (${response.status}).`;
-    if (![500, 502, 503, 504].includes(response.status) || attempt === 2) throw new Error(message);
+    if (![500, 502, 503, 504].includes(response.status) || attempt === 1) throw new Error(message);
     lastError = new Error(message);
-    await pause(800 * 2 ** attempt);
+    await pause(400);
   }
   throw lastError || new Error('The assistant could not answer right now. Please try again.');
 }

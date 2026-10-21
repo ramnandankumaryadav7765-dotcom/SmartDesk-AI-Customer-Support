@@ -292,7 +292,7 @@ async function accountContext(ownerId, question) {
       knowledgeArticles: articles.length,
     },
     tickets: tickets
-      .slice(0, 25)
+      .slice(-12)
       .map(({ customer, subject, status, priority, orderNumber, messages }) => ({
         customer,
         subject,
@@ -302,7 +302,7 @@ async function accountContext(ownerId, question) {
         latestMessage: messages?.at(-1)?.text,
       })),
     orders: orders
-      .slice(0, 40)
+      .slice(-12)
       .map(({ orderNumber, customer, items, total, currency, status, tracking, placedAt }) => ({
         orderNumber,
         customer,
@@ -314,15 +314,15 @@ async function accountContext(ownerId, question) {
         placedAt,
       })),
     knowledge: (relevantArticles.length ? relevantArticles : articles)
-      .slice(0, 20)
+      .slice(0, 6)
       .map(({ title, category, content }) => ({
         title,
         category,
-        content,
+        content: String(content || '').slice(0, 1400),
       })),
   };
   return {
-    context: JSON.stringify(context).slice(0, 28000),
+    context: JSON.stringify(context).slice(0, 16000),
     relevantArticles,
     tickets,
     orders,
@@ -335,7 +335,12 @@ router.post('/assistant/ask', async (req, res, next) => {
     const question = String(req.body.message || '').trim();
     if (!question) return res.status(400).json({ error: 'Write a question for your assistant.' });
     const account = await accountContext(req.user.id, question);
-    const answer = await callAssistant(question, account.context);
+    const history = Array.isArray(req.body.history)
+      ? req.body.history
+          .filter((item) => ['user', 'assistant'].includes(item?.role) && typeof item?.text === 'string')
+          .slice(-8)
+      : [];
+    const answer = await callAssistant(question, account.context, history);
     res.json({
       answer,
       source: 'Gemini',

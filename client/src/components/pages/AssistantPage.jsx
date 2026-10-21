@@ -15,30 +15,16 @@ const starterPrompts = [
   { icon: BookOpen, text: 'What policies are in my knowledge base?' },
 ];
 
-export default function AssistantPage({ user, onAsk, aiReady }) {
+export default function AssistantPage({ user, onAsk, aiReady, messages, onMessagesChange, busy, error }) {
   const [prompt, setPrompt] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
 
   const ask = async (text = prompt) => {
     const question = text.trim();
     if (!question || busy) return;
     setPrompt('');
-    setError('');
-    setMessages((items) => [...items, { role: 'user', text: question }]);
-    setBusy(true);
-    try {
-      const result = await onAsk(question);
-      setMessages((items) => [
-        ...items,
-        { role: 'assistant', text: result.answer, references: result.references },
-      ]);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setBusy(false);
-    }
+    const history = messages;
+    onMessagesChange((items) => [...items, { role: 'user', text: question }]);
+    await onAsk(question, history);
   };
 
   return (

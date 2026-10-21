@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleHelp } from 'lucide-react';
 import Sidebar from './components/Sidebar.jsx';
 import Topbar from './components/Topbar.jsx';
@@ -31,6 +31,10 @@ function App() {
   const [sources, setSources] = useState([]);
   const [aiSource, setAiSource] = useState('');
   const [loadingAI, setLoadingAI] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState([]);
+  const [assistantBusy, setAssistantBusy] = useState(false);
+  const [assistantError, setAssistantError] = useState('');
+  const assistantRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showNew, setShowNew] = useState(false);
@@ -119,6 +123,8 @@ function App() {
   };
 
   const signOut = async () => {
+    assistantRequestId.current += 1;
+    setAssistantBusy(false);
     try {
       await smartdeskApi.logout();
     } catch {
@@ -131,8 +137,29 @@ function App() {
     setKnowledge([]);
     setSelectedId(null);
     setReply('');
+    setAssistantMessages([]);
+    setAssistantError('');
     setPage('Overview');
     setNotice('You are signed out.');
+  };
+
+  const askAssistant = async (question, history) => {
+    const requestId = ++assistantRequestId.current;
+    setAssistantBusy(true);
+    setAssistantError('');
+    try {
+      const result = await smartdeskApi.askAssistant(question, history);
+      if (requestId !== assistantRequestId.current) return;
+      setAssistantMessages((items) => [
+        ...items,
+        { role: 'assistant', text: result.answer, references: result.references },
+      ]);
+    } catch (requestError) {
+      if (requestId !== assistantRequestId.current) return;
+      setAssistantError(requestError.message);
+    } finally {
+      if (requestId === assistantRequestId.current) setAssistantBusy(false);
+    }
   };
 
   const openTicket = (ticket) => {
@@ -318,7 +345,11 @@ function App() {
         {page === 'AI assistant' && (
           <AssistantPage
             user={user}
-            onAsk={smartdeskApi.askAssistant}
+            onAsk={askAssistant}
+            messages={assistantMessages}
+            onMessagesChange={setAssistantMessages}
+            busy={assistantBusy}
+            error={assistantError}
             aiReady={overview?.ai === 'gemini'}
           />
         )}
