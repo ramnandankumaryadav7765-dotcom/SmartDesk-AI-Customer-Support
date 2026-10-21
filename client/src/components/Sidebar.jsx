@@ -1,94 +1,78 @@
-import {
-  Activity,
-  BookOpen,
-  Box,
-  ChevronDown,
-  Inbox,
-  MoreHorizontal,
-  Sparkles,
-} from 'lucide-react';
+import { Activity, BookOpen, Bot, Box, Inbox, LogOut, Sparkles } from 'lucide-react';
 
 const navigation = [
   { label: 'Overview', icon: Activity },
+  { label: 'AI assistant', icon: Bot },
   { label: 'Inbox', icon: Inbox },
   { label: 'Orders', icon: Box },
   { label: 'Knowledge base', icon: BookOpen },
 ];
 
-export default function Sidebar({ page, openCount = 0, onNavigate }) {
+const initials = (name = '') =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
+export default function Sidebar({ page, openCount = 0, user, onNavigate, onSignOut }) {
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark">
-          <span />
-          <span />
-          <span />
-        </div>
+      <button
+        className="brand brand-button"
+        type="button"
+        onClick={() => onNavigate('Overview')}
+        aria-label="SmartDesk overview"
+      >
+        <span className="brand-orbit" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </span>
         <span>smartdesk</span>
-      </div>
+      </button>
       <div className="workspace-switch">
-        <div className="shop-avatar">S</div>
+        <div className="shop-avatar">{initials(user?.name) || 'S'}</div>
         <div className="workspace-copy">
-          <strong>Sunday Supply</strong>
-          <small>Support workspace</small>
+          <strong>{user?.name}</strong>
+          <small>Personal workspace</small>
         </div>
-        <ChevronDown size={15} />
       </div>
-      <div className="sidebar-label">WORKSPACE</div>
+      <div className="sidebar-label">YOUR WORKSPACE</div>
       <nav className="nav-list" aria-label="Main navigation">
         {navigation.map(({ label, icon: Icon }) => (
           <button
             key={label}
             className={`nav-item ${page === label ? 'active' : ''}`}
             onClick={() => onNavigate(label)}
+            aria-current={page === label ? 'page' : undefined}
           >
-            <Icon size={18} strokeWidth={1.8} />
+            <Icon size={19} strokeWidth={1.9} />
             <span>{label}</span>
             {label === 'Inbox' && openCount > 0 && <b className="nav-count">{openCount}</b>}
           </button>
         ))}
       </nav>
-      <div className="sidebar-label team-label">YOUR TEAM</div>
-      <div className="team-row">
-        <span className="presence avatar peach">
-          JL
-          <i />
-        </span>
-        <span>Jamie Lee</span>
-        <span className="you-label">You</span>
-      </div>
-      <div className="team-row">
-        <span className="presence avatar lavender">
-          MK
-          <i />
-        </span>
-        <span>Marcus Kim</span>
-      </div>
-      <div className="team-row">
-        <span className="presence avatar blue">
-          AR
-          <i />
-        </span>
-        <span>Ana Rivera</span>
-      </div>
       <div className="sidebar-bottom">
-        <div className="plan-card">
+        <button className="plan-card" type="button" onClick={() => onNavigate('AI assistant')}>
           <div className="plan-icon">
-            <Sparkles size={16} />
+            <Sparkles size={17} />
           </div>
           <div>
-            <strong>Your AI sidekick</strong>
-            <small>Ready when you are</small>
+            <strong>Ask your assistant</strong>
+            <small>Across your account</small>
           </div>
           <span className="online-dot" />
-        </div>
-        <button className="profile-button" type="button">
-          <div className="avatar profile-avatar">JL</div>
-          <div>
-            <strong>Jamie Lee</strong>
-            <small>Workspace admin</small>
+        </button>
+        <button className="profile-button" type="button" onClick={onSignOut} title="Sign out">
+          <div className="avatar profile-avatar">{initials(user?.name)}</div>
+          <div className="profile-copy">
+            <strong>{user?.name}</strong>
+            <small>Sign out</small>
           </div>
-          <MoreHorizontal size={18} />
+          <LogOut size={17} aria-hidden="true" />
         </button>
       </div>
     </aside>

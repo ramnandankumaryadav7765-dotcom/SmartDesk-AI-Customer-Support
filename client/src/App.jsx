@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CircleHelp } from 'lucide-react';
 import Sidebar from './components/Sidebar.jsx';
 import Topbar from './components/Topbar.jsx';
 import NewTicketModal from './components/NewTicketModal.jsx';
+import AuthPage from './components/AuthPage.jsx';
 import Toast from './components/Toast.jsx';
 import OverviewPage from './components/pages/OverviewPage.jsx';
 import InboxPage from './components/pages/InboxPage.jsx';
 import OrdersPage from './components/pages/OrdersPage.jsx';
 import KnowledgePage from './components/pages/KnowledgePage.jsx';
-import { CircleHelp } from 'lucide-react';
+import AssistantPage from './components/pages/AssistantPage.jsx';
 import { smartdeskApi } from './api/smartdesk.js';
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [page, setPage] = useState('Overview');
   const [overview, setOverview] = useState(null);
   const [tickets, setTickets] = useState([]);
@@ -28,27 +32,47 @@ function App() {
   const [notice, setNotice] = useState('');
 
   const refresh = async () => {
-    try {
-      const workspace = await smartdeskApi.loadWorkspace();
-      setOverview(workspace.overview);
-      setTickets(workspace.tickets);
-      setOrders(workspace.orders);
-      setKnowledge(workspace.knowledge);
-      setSelectedId((current) => current || workspace.tickets[0]?.id || null);
-      setError('');
-    } catch (err) {
-      setError(`${err.message} Start the app with npm run dev.`);
-    } finally {
-      setLoading(false);
-    }
+    const workspace = await smartdeskApi.loadWorkspace();
+    setOverview(workspace.overview);
+    setTickets(workspace.tickets);
+    setOrders(workspace.orders);
+    setKnowledge(workspace.knowledge);
+    setSelectedId((current) => current || workspace.tickets[0]?.id || null);
+    setError('');
   };
 
   useEffect(() => {
-    refresh();
+    let mounted = true;
+    smartdeskApi
+      .me()
+      .then(async ({ user: signedInUser }) => {
+        if (!mounted) return;
+        setUser(signedInUser);
+        if (signedInUser) {
+          try {
+            await refresh();
+          } catch (requestError) {
+            setError(`${requestError.message} Restart the app with npm run dev.`);
+          }
+        }
+      })
+      .catch((requestError) => {
+        if (mounted) setError(requestError.message);
+      })
+      .finally(() => {
+        if (mounted) {
+          setCheckingSession(false);
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
+
   useEffect(() => {
     if (!notice) return;
-    const timer = setTimeout(() => setNotice(''), 2800);
+    const timer = setTimeout(() => setNotice(''), 3200);
     return () => clearTimeout(timer);
   }, [notice]);
 
@@ -63,12 +87,40 @@ function App() {
     [tickets, query],
   );
 
+  const authenticate = async (mode, values) => {
+    const result =
+      mode === 'signup' ? await smartdeskApi.signup(values) : await smartdeskApi.login(values);
+    setUser(result.user);
+    setPage('Overview');
+    setQuery('');
+    setError('');
+    await refresh();
+  };
+
+  const signOut = async () => {
+    try {
+      await smartdeskApi.logout();
+    } catch {
+      /* Clear local account view even if the API is unavailable. */
+    }
+    setUser(null);
+    setOverview(null);
+    setTickets([]);
+    setOrders([]);
+    setKnowledge([]);
+    setSelectedId(null);
+    setReply('');
+    setPage('Overview');
+    setNotice('You are signed out.');
+  };
+
   const openTicket = (ticket) => {
     setSelectedId(ticket.id);
     setReply('');
     setSources([]);
     setAiSource('');
   };
+
   const draftReply = async (ticket = selected) => {
     if (!ticket) return;
     const customerMessage =
@@ -85,22 +137,11 @@ function App() {
       setReply(data.draft);
       setSources(data.articles || []);
       setAiSource(data.source || 'AI draft');
-    } catch (err) {
-      setNotice(err.message);
+    } catch (requestError) {
+      setNotice(requestError.message);
     } finally {
       setLoadingAI(false);
     }
-  };
-
-  const tryDraft = () => {
-    const ticket = tickets.find((item) => item.status !== 'resolved') || tickets[0];
-    if (!ticket) {
-      setNotice('Add a ticket before drafting a reply.');
-      return;
-    }
-    openTicket(ticket);
-    setPage('Inbox');
-    draftReply(ticket);
   };
 
   const markResolved = async () => {
@@ -111,9 +152,9 @@ function App() {
         selected.status === 'resolved' ? 'open' : 'resolved',
       );
       setTickets((items) => items.map((item) => (item.id === updated.id ? updated : item)));
-      setNotice(updated.status === 'resolved' ? 'Ticket marked as resolved' : 'Ticket reopened');
-    } catch (err) {
-      setNotice(err.message);
+      setNotice(updated.status === 'resolved' ? 'Ticket marked as resolved.' : 'Ticket reopened.');
+    } catch (requestError) {
+      setNotice(requestError.message);
     }
   };
 
@@ -123,56 +164,88 @@ function App() {
       const data = await smartdeskApi.saveReply(selected.id, reply);
       setTickets((items) => items.map((item) => (item.id === data.id ? data : item)));
       setReply('');
-      setNotice('Reply saved to the ticket timeline');
-    } catch (err) {
-      setNotice(err.message);
+      setNotice('Reply saved to the ticket timeline.');
+    } catch (requestError) {
+      setNotice(requestError.message);
     }
   };
 
   const createTicket = async (event) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
     try {
-      const data = await smartdeskApi.createTicket(Object.fromEntries(form));
+      const data = await smartdeskApi.createTicket(
+        Object.fromEntries(new FormData(event.currentTarget)),
+      );
       await refresh();
       setSelectedId(data.id);
       setPage('Inbox');
       setShowNew(false);
-      setNotice('New ticket added to the inbox');
-    } catch (err) {
-      setNotice(err.message);
+      setNotice('New ticket added to your inbox.');
+    } catch (requestError) {
+      setNotice(requestError.message);
     }
+  };
+
+  const createOrder = async (order) => {
+    const saved = await smartdeskApi.createOrder(order);
+    setOrders((items) => [saved, ...items]);
+    setNotice('Order saved to your workspace.');
   };
 
   const createArticle = async (event) => {
     event.preventDefault();
     try {
-      const data = await smartdeskApi.createArticle(
+      const article = await smartdeskApi.createArticle(
         Object.fromEntries(new FormData(event.currentTarget)),
       );
-      setKnowledge((items) => [data, ...items]);
-      setNotice('Knowledge article added');
+      setKnowledge((items) => [article, ...items]);
+      setNotice('Knowledge article added.');
       return true;
-    } catch (err) {
-      setNotice(err.message);
+    } catch (requestError) {
+      setNotice(requestError.message);
       return false;
     }
   };
 
+  if (checkingSession)
+    return (
+      <div className="app-loading">
+        <span className="loading-mark">
+          <i />
+          <i />
+          <i />
+        </span>
+        <p>Opening your workspace…</p>
+      </div>
+    );
+  if (!user)
+    return (
+      <>
+        <AuthPage onAuthenticate={authenticate} />
+        <Toast message={notice} />
+      </>
+    );
+
   return (
     <div className="app-shell">
-      <Sidebar page={page} openCount={overview?.openTickets || 0} onNavigate={setPage} />
-
+      <Sidebar
+        page={page}
+        openCount={overview?.openTickets || 0}
+        user={user}
+        onNavigate={setPage}
+        onSignOut={signOut}
+      />
       <main className="main-area">
         <Topbar
           page={page}
+          user={user}
           query={query}
           onQueryChange={setQuery}
           onNotify={() => setNotice('You’re all caught up.')}
         />
         {error && (
           <div className="error-banner">
-            <CircleHelp size={17} />
+            <CircleHelp size={18} />
             <span>{error}</span>
           </div>
         )}
@@ -181,10 +254,11 @@ function App() {
             overview={overview}
             tickets={tickets}
             orders={orders}
+            user={user}
             onPage={setPage}
             onTicket={openTicket}
             onNew={() => setShowNew(true)}
-            onTryDraft={tryDraft}
+            onAskAssistant={() => setPage('AI assistant')}
             loading={loading}
           />
         )}
@@ -204,11 +278,19 @@ function App() {
             sources={sources}
             aiSource={aiSource}
             loadingAI={loadingAI}
+            user={user}
           />
         )}
-        {page === 'Orders' && <OrdersPage orders={orders} query={query} />}
+        {page === 'Orders' && <OrdersPage orders={orders} query={query} onCreate={createOrder} />}
         {page === 'Knowledge base' && (
-          <KnowledgePage knowledge={knowledge} onCreate={createArticle} />
+          <KnowledgePage knowledge={knowledge} query={query} onCreate={createArticle} />
+        )}
+        {page === 'AI assistant' && (
+          <AssistantPage
+            user={user}
+            onAsk={smartdeskApi.askAssistant}
+            aiReady={overview?.ai === 'gemini'}
+          />
         )}
       </main>
       <NewTicketModal open={showNew} onClose={() => setShowNew(false)} onSubmit={createTicket} />

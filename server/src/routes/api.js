@@ -1,7 +1,19 @@
+import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { makeArticle, makeTicket } from '../data.js';
+import { makeArticle, makeOrder, makeTicket } from '../data.js';
 import { findOne, insert, list, storageMode, update } from '../store.js';
-import { callGemini, findRelevantArticle } from '../services/assistant.js';
+import {
+  createSession,
+  deleteSession,
+  getSessionUser,
+  hashPassword,
+  publicUser,
+  requireAuth,
+  setSessionCookie,
+  clearSessionCookie,
+  verifyPassword,
+} from '../services/auth.js';
+import { callAssistant, findRelevantArticle } from '../services/assistant.js';
 
 const router = Router();
 
@@ -9,26 +21,104 @@ router.get('/health', (_req, res) =>
   res.json({
     ok: true,
     storage: storageMode(),
-    ai: process.env.GEMINI_API_KEY ? 'gemini' : 'preview',
+    ai: process.env.GEMINI_API_KEY ? 'gemini' : 'offline',
   }),
 );
 
-router.get('/overview', async (_req, res, next) => {
+router.post('/auth/signup', async (req, res, next) => {
   try {
-    const [tickets, orders] = await Promise.all([list('tickets'), list('orders')]);
-    const openTickets = tickets.filter(
+    const name = String(req.body.name || '').trim();
+    const email = String(req.body.email || '')
+      .trim()
+      .toLowerCase();
+    const password = String(req.body.password || '');
+    if (name.length < 2 || name.length > 60)
+      return res.status(400).json({ error: 'Enter your name (2–60 characters).' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return res.status(400).json({ error: 'Enter a valid email address.' });
+    if (password.length < 8 || password.length > 128)
+      return res.status(400).json({ error: 'Use a password between 8 and 128 characters.' });
+    if (await findOne('users', { email }))
+      return res.status(409).json({ error: 'An account already exists for that email.' });
+
+    const user = {
+      id: randomUUID(),
+      name,
+      email,
+      passwordHash: hashPassword(password),
+      createdAt: new Date().toISOString(),
+    };
+    await insert('users', user);
+    const session = await createSession(user.id);
+    setSessionCookie(res, session.token, session.expiresAt);
+    return res.status(201).json({ user: publicUser(user) });
+  } catch (error) {
+    if (error.code === 11000)
+      return res.status(409).json({ error: 'An account already exists for that email.' });
+    return next(error);
+  }
+});
+
+router.post('/auth/login', async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '')
+      .trim()
+      .toLowerCase();
+    const password = String(req.body.password || '');
+    if (!email || password.length > 128)
+      return res.status(401).json({ error: 'Email or password is incorrect.' });
+    const user = await findOne('users', { email });
+    if (!user || !verifyPassword(password, user.passwordHash))
+      return res.status(401).json({ error: 'Email or password is incorrect.' });
+    const session = await createSession(user.id);
+    setSessionCookie(res, session.token, session.expiresAt);
+    return res.json({ user: publicUser(user) });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get('/auth/me', async (req, res, next) => {
+  try {
+    const user = await getSessionUser(req);
+    return res.json({ user: user ? publicUser(user) : null });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/auth/logout', async (req, res, next) => {
+  try {
+    await deleteSession(req);
+    clearSessionCookie(res);
+    return res.json({ ok: true });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.use(requireAuth);
+
+router.get('/overview', async (req, res, next) => {
+  try {
+    const ownerId = req.user.id;
+    const [tickets, orders] = await Promise.all([
+      list('tickets', { ownerId }),
+      list('orders', { ownerId }),
+    ]);
+    const activeTickets = tickets.filter(
       (ticket) => ticket.status === 'open' || ticket.status === 'pending',
     );
     res.json({
-      openTickets: openTickets.length,
-      urgentTickets: openTickets.filter((ticket) => ticket.priority === 'urgent').length,
+      openTickets: activeTickets.length,
+      urgentTickets: activeTickets.filter((ticket) => ticket.priority === 'urgent').length,
       ordersToday: orders.filter(
         (order) => new Date(order.placedAt).toDateString() === new Date().toDateString(),
       ).length,
-      tickets,
-      orders,
+      ticketCount: tickets.length,
+      orderCount: orders.length,
       storage: storageMode(),
-      ai: process.env.GEMINI_API_KEY ? 'gemini' : 'preview',
+      ai: process.env.GEMINI_API_KEY ? 'gemini' : 'offline',
     });
   } catch (error) {
     next(error);
@@ -37,12 +127,9 @@ router.get('/overview', async (_req, res, next) => {
 
 router.get('/tickets', async (req, res, next) => {
   try {
-    res.json(
-      await list(
-        'tickets',
-        req.query.status && req.query.status !== 'all' ? { status: req.query.status } : {},
-      ),
-    );
+    const filter = { ownerId: req.user.id };
+    if (req.query.status && req.query.status !== 'all') filter.status = req.query.status;
+    res.json(await list('tickets', filter));
   } catch (error) {
     next(error);
   }
@@ -51,7 +138,7 @@ router.get('/tickets', async (req, res, next) => {
 router.post('/tickets', async (req, res, next) => {
   try {
     if (!req.body.message?.trim()) return res.status(400).json({ error: 'A message is required.' });
-    const ticket = await insert('tickets', makeTicket(req.body));
+    const ticket = await insert('tickets', makeTicket(req.body, req.user.id));
     res.status(201).json(ticket);
   } catch (error) {
     next(error);
@@ -64,7 +151,7 @@ router.patch('/tickets/:id', async (req, res, next) => {
       ? req.body.status
       : null;
     if (!status) return res.status(400).json({ error: 'Choose open, pending, or resolved.' });
-    const ticket = await update('tickets', { id: req.params.id }, { status });
+    const ticket = await update('tickets', { id: req.params.id, ownerId: req.user.id }, { status });
     if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
     res.json(ticket);
   } catch (error) {
@@ -76,30 +163,45 @@ router.post('/tickets/:id/reply', async (req, res, next) => {
   try {
     const text = String(req.body.text || '').trim();
     if (!text) return res.status(400).json({ error: 'A reply cannot be empty.' });
-    const ticket = await findOne('tickets', { id: req.params.id });
+    const filter = { id: req.params.id, ownerId: req.user.id };
+    const ticket = await findOne('tickets', filter);
     if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
     const messages = [
       ...(ticket.messages || []),
       { role: 'staff', text, createdAt: new Date().toISOString() },
     ];
-    const updated = await update('tickets', { id: req.params.id }, { messages });
-    res.json(updated);
+    res.json(await update('tickets', filter, { messages }));
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/orders', async (_req, res, next) => {
+router.get('/orders', async (req, res, next) => {
   try {
-    res.json(await list('orders'));
+    res.json(await list('orders', { ownerId: req.user.id }));
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/knowledge', async (_req, res, next) => {
+router.post('/orders', async (req, res, next) => {
   try {
-    res.json(await list('knowledge'));
+    if (!req.body.customer?.trim() || !req.body.items?.trim())
+      return res.status(400).json({ error: 'Add a customer and at least one item.' });
+    const order = makeOrder(req.body, req.user.id);
+    if (await findOne('orders', { ownerId: req.user.id, orderNumber: order.orderNumber }))
+      return res.status(409).json({ error: 'That order number already exists in your account.' });
+    res.status(201).json(await insert('orders', order));
+  } catch (error) {
+    if (error.code === 11000)
+      return res.status(409).json({ error: 'That order number already exists in your account.' });
+    next(error);
+  }
+});
+
+router.get('/knowledge', async (req, res, next) => {
+  try {
+    res.json(await list('knowledge', { ownerId: req.user.id }));
   } catch (error) {
     next(error);
   }
@@ -109,8 +211,79 @@ router.post('/knowledge', async (req, res, next) => {
   try {
     if (!req.body.title?.trim() || !req.body.content?.trim())
       return res.status(400).json({ error: 'An article title and content are required.' });
-    const article = await insert('knowledge', makeArticle(req.body));
-    res.status(201).json(article);
+    res.status(201).json(await insert('knowledge', makeArticle(req.body, req.user.id)));
+  } catch (error) {
+    next(error);
+  }
+});
+
+async function accountContext(ownerId, question) {
+  const [tickets, orders, articles] = await Promise.all([
+    list('tickets', { ownerId }),
+    list('orders', { ownerId }),
+    list('knowledge', { ownerId }),
+  ]);
+  const relevantArticles = findRelevantArticle(question, articles);
+  const context = {
+    accountDataCounts: {
+      tickets: tickets.length,
+      orders: orders.length,
+      knowledgeArticles: articles.length,
+    },
+    tickets: tickets
+      .slice(0, 25)
+      .map(({ customer, subject, status, priority, orderNumber, messages }) => ({
+        customer,
+        subject,
+        status,
+        priority,
+        orderNumber,
+        latestMessage: messages?.at(-1)?.text,
+      })),
+    orders: orders
+      .slice(0, 40)
+      .map(({ orderNumber, customer, items, total, currency, status, tracking, placedAt }) => ({
+        orderNumber,
+        customer,
+        items,
+        total,
+        currency,
+        status,
+        tracking,
+        placedAt,
+      })),
+    knowledge: (relevantArticles.length ? relevantArticles : articles)
+      .slice(0, 20)
+      .map(({ title, category, content }) => ({
+        title,
+        category,
+        content,
+      })),
+  };
+  return {
+    context: JSON.stringify(context).slice(0, 28000),
+    relevantArticles,
+    tickets,
+    orders,
+    articles,
+  };
+}
+
+router.post('/assistant/ask', async (req, res, next) => {
+  try {
+    const question = String(req.body.message || '').trim();
+    if (!question) return res.status(400).json({ error: 'Write a question for your assistant.' });
+    const account = await accountContext(req.user.id, question);
+    const answer = await callAssistant(question, account.context);
+    res.json({
+      answer,
+      source: 'Gemini',
+      references: {
+        tickets: account.tickets.length,
+        orders: account.orders.length,
+        articles: account.relevantArticles.map(({ id, title }) => ({ id, title })),
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -120,28 +293,15 @@ router.post('/assistant/draft', async (req, res, next) => {
   try {
     const question = String(req.body.message || '').trim();
     if (!question) return res.status(400).json({ error: 'Add a customer message first.' });
-    const articles = await list('knowledge');
-    const relevant = findRelevantArticle(question, articles);
-    if (process.env.GEMINI_API_KEY) {
-      const draft = await callGemini(question, relevant);
-      return res.json({
-        draft,
-        source: 'Gemini',
-        articles: relevant.map(({ id, title }) => ({ id, title })),
-      });
-    }
-    const orderNumber = question.match(/\bSD-\d{4}\b/i)?.[0]?.toUpperCase();
-    const order = orderNumber ? await findOne('orders', { orderNumber }) : null;
-    let draft =
-      'Thanks for reaching out. I want to make sure we give you the right information, so I’m flagging this for a support specialist to review.';
-    if (order)
-      draft = `Thanks for reaching out. Order ${order.orderNumber} is currently ${order.status.toLowerCase()}${order.tracking ? ` (tracking: ${order.tracking})` : ''}. A member of our team can help with the next step.`;
-    else if (relevant.length)
-      draft = `Thanks for reaching out. ${relevant[0].content.split('. ').slice(0, 2).join('. ')}. Please let us know if there’s anything else we can help with.`;
+    const account = await accountContext(req.user.id, question);
+    const draft = await callAssistant(
+      `Draft a concise, empathetic customer-support reply to this message. Use the account order and policy details where they match.\n\n${question}`,
+      account.context,
+    );
     res.json({
       draft,
-      source: 'Preview mode',
-      articles: relevant.map(({ id, title }) => ({ id, title })),
+      source: 'Gemini',
+      articles: account.relevantArticles.map(({ id, title }) => ({ id, title })),
     });
   } catch (error) {
     next(error);

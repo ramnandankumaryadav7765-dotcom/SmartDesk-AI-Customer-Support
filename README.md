@@ -1,22 +1,23 @@
 # SmartDesk — AI Customer Support
 
-SmartDesk is a learning project for a small-shop support workspace. It brings a ticket inbox, order records, a shop knowledge base, and AI-assisted reply drafts together. MongoDB stores the shop data, and Gemini can draft replies and request a safe order lookup through the backend.
+SmartDesk is a learning project for a small-shop support workspace. Users create an account, then manage their own support tickets, orders, and knowledge articles. A workspace assistant can answer general questions and use only the signed-in account's data when responding about its records.
 
-## Current features
+## Features
 
-- Overview dashboard with support and order summaries
-- Ticket inbox with open, urgent, and resolved views
-- Create a ticket, update its status, and save replies to its timeline
-- Recent orders and sample shop knowledge articles
-- AI reply drafts grounded in the knowledge base
-- Gemini function calling for order status lookups; the server executes the lookup
-- Demo mode with sample data when MongoDB is not configured
+- Sign-up, sign-in, and sign-out with an HTTP-only session cookie
+- Scrypt password hashing; passwords are never stored as plain text
+- Account-scoped tickets, orders, and knowledge articles
+- Create tickets, save internal replies, and resolve or reopen conversations
+- Add orders and knowledge articles to your own workspace
+- Gemini assistant for general questions and account-aware answers
+- Gemini-generated ticket reply drafts with retry handling for temporary server overloads
+- Responsive dashboard, inbox, orders, and knowledge views
 
-Replies are saved inside SmartDesk only. The app does not send email or contact customers.
+New accounts start with empty workspace data. The app does not seed sample customers, orders, or policies. Records from the earlier demo that have no account owner remain in MongoDB but are not shown to signed-in accounts.
 
 ## Start the app
 
-You need Node.js 20 or newer. In this folder, install the dependencies and start both the API and website:
+Use Node.js 20 or newer. From this folder, install dependencies and run both the API server and browser app:
 
 ```sh
 npm install
@@ -25,49 +26,50 @@ npm --prefix client install
 npm run dev
 ```
 
-Open the local address printed by Vite, normally `http://localhost:5173`.
+Open `http://localhost:5173`. The first screen is sign-in; choose **Create an account** to create a private workspace.
 
-The website and API can run in demo mode without credentials. Sample tickets and orders are held in memory in demo mode, so changes reset when the server restarts.
+## Environment settings
 
-## Connect MongoDB Atlas
+The backend reads `server/.env`. Copy `server/.env.example` to `server/.env`, then set your MongoDB Atlas URI and Gemini API key:
 
-1. Create a MongoDB Atlas cluster and database user.
-2. Copy `server/.env.example` to `server/.env`.
-3. Add the Atlas connection string to `MONGODB_URI` and optionally change `MONGODB_DB`.
-4. Restart the server. SmartDesk creates sample collections only when each collection is empty.
+```env
+PORT=4000
+MONGODB_URI=your_mongodb_atlas_connection_string
+MONGODB_DB=SmartDesk-AI-Customer-Support
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-3.8-flash
+```
 
-Keep `server/.env` private. It is excluded from Git.
+Keep `server/.env` private. It is excluded from Git. Restart the server after changing settings.
 
-## Connect Gemini
+## Account data and AI
 
-1. Create a Gemini API key in Google AI Studio.
-2. Add it as `GEMINI_API_KEY` in `server/.env`.
-3. Leave `GEMINI_MODEL` set to `gemini-3.8-flash`, or change it to a model enabled for your API key.
-4. Restart the server and use **Draft with AI** on a ticket.
+The API filters ticket, order, and knowledge operations by the signed-in account ID. The assistant receives only that account's saved workspace records and relevant policy articles. It cannot send replies or change records. Review its suggestions before taking action.
 
-Without a key, the assistant uses a clearly labeled preview mode with a simple sample-data response. Use fake customer information while experimenting with a free-tier API account.
+If `GEMINI_API_KEY` is not configured, account and data features still work, but AI answers are unavailable. Data is held in memory only when MongoDB is not configured; in that mode accounts and changes reset when the server stops.
 
 ## Keep the code tidy
 
-Run `npm run format` to apply the project’s shared Prettier style. Run `npm run format:check` to check formatting without changing files. The browser app is served by Vite and reloads frontend edits as you work. Restart the API after changing server files.
+Run `npm run format` to apply the shared Prettier style. Run `npm run format:check` to check formatting. Run `npm run build` to create the frontend production build.
 
 ## Project layout
 
 ```text
 client/
-  index.html                 App document and page metadata
-  src/App.jsx                Page state and high-level routing
-  src/api/smartdesk.js       Browser-to-server API calls
-  src/components/            Shared sidebar, top bar, modal, and toast
-  src/components/pages/       Overview, inbox, orders, and knowledge pages
-  src/lib/formatters.js       Shared date, amount, and avatar helpers
-  src/styles/                 Base, shell, page, overlay, and responsive CSS
+  index.html                  App document and page metadata
+  src/App.jsx                 Session, data, and page state
+  src/api/smartdesk.js        Browser-to-server API calls
+  src/components/AuthPage.jsx Login and signup
+  src/components/Sidebar.jsx  Account navigation and sign-out
+  src/components/pages/       Dashboard, inbox, orders, knowledge, assistant
+  src/styles/                 Base, shell, page, responsive, and auth styles
   vite.config.js              React setup and local API proxy
 server/
-  src/index.js               Server startup and graceful shutdown
+  src/index.js                Server startup and graceful shutdown
   src/app.js                  Express middleware and API mounting
-  src/routes/api.js           HTTP routes and request validation
-  src/services/assistant.js   Gemini prompts and order lookup tool
-  src/store.js                MongoDB connection and demo data storage
-  src/data.js                 Sample shop records and data builders
+  src/routes/api.js           Auth, account data, and assistant routes
+  src/services/auth.js        Password hashing and session cookies
+  src/services/assistant.js   Account-aware Gemini integration
+  src/store.js                MongoDB and in-memory data access
+  src/data.js                 Request-based record builders
 ```

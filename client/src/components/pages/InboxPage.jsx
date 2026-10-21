@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ArrowDownLeft,
   BookOpen,
   CheckCheck,
   MessageCircle,
-  MoreHorizontal,
   Plus,
   Search,
   Send,
@@ -27,8 +26,10 @@ export default function InboxPage({
   sources,
   aiSource,
   loadingAI,
+  user,
 }) {
   const [filter, setFilter] = useState('All');
+  const replyRef = useRef(null);
   const shown = tickets.filter((ticket) =>
     filter === 'All'
       ? ticket.status !== 'resolved'
@@ -125,9 +126,6 @@ export default function InboxPage({
                 </div>
               </div>
               <div className="detail-actions">
-                <button className="icon-button" aria-label="More">
-                  <MoreHorizontal size={19} />
-                </button>
                 <button className="resolve-button" onClick={onResolve}>
                   {selected.status === 'resolved' ? (
                     <>
@@ -168,10 +166,17 @@ export default function InboxPage({
               {selected.messages?.length > 1 &&
                 selected.messages.slice(1).map((message, i) => (
                   <div className="message-row own-message" key={i}>
-                    <div className="avatar profile-avatar">JL</div>
+                    <div className="avatar profile-avatar">
+                      {user.name
+                        .split(/\s+/)
+                        .slice(0, 2)
+                        .map((part) => part[0])
+                        .join('')
+                        .toUpperCase()}
+                    </div>
                     <div className="message-content">
                       <div className="message-byline">
-                        <strong>You</strong>
+                        <strong>{user.name}</strong>
                         <span>{message.createdAt ? timeAgo(message.createdAt) : 'Just now'}</span>
                       </div>
                       <div className="staff-bubble">{message.text}</div>
@@ -209,13 +214,14 @@ export default function InboxPage({
                   )}
                   <div className="draft-actions">
                     <button onClick={() => setReply('')}>Discard</button>
-                    <button className="use-draft" onClick={() => setReply(reply)}>
-                      Use this draft <ArrowDownLeft size={13} />
+                    <button className="use-draft" onClick={() => replyRef.current?.focus()}>
+                      Edit reply <ArrowDownLeft size={13} />
                     </button>
                   </div>
                 </div>
               )}
               <textarea
+                ref={replyRef}
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Write a thoughtful reply..."

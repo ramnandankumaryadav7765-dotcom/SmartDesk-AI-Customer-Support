@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 async function request(path, options) {
-  const response = await fetch(`${API_BASE}${path}`, options);
+  const response = await fetch(`${API_BASE}${path}`, { credentials: 'include', ...options });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'The SmartDesk request could not be completed.');
   return data;
@@ -16,6 +16,10 @@ function sendJson(path, body, method = 'POST') {
 }
 
 export const smartdeskApi = {
+  me: () => request('/auth/me'),
+  signup: (account) => sendJson('/auth/signup', account),
+  login: (credentials) => sendJson('/auth/login', credentials),
+  logout: () => sendJson('/auth/logout', {}),
   async loadWorkspace() {
     const [overview, tickets, orders, knowledge] = await Promise.all([
       request('/overview'),
@@ -26,8 +30,10 @@ export const smartdeskApi = {
     return { overview, tickets, orders, knowledge };
   },
   createTicket: (ticket) => sendJson('/tickets', ticket),
+  createOrder: (order) => sendJson('/orders', order),
   setTicketStatus: (id, status) => sendJson(`/tickets/${id}`, { status }, 'PATCH'),
   saveReply: (id, text) => sendJson(`/tickets/${id}/reply`, { text }),
   draftReply: (message) => sendJson('/assistant/draft', { message }),
+  askAssistant: (message) => sendJson('/assistant/ask', { message }),
   createArticle: (article) => sendJson('/knowledge', article),
 };

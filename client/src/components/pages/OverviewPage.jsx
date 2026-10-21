@@ -5,10 +5,11 @@ export default function OverviewPage({
   overview,
   tickets,
   orders,
+  user,
   onPage,
   onTicket,
   onNew,
-  onTryDraft,
+  onAskAssistant,
   loading,
 }) {
   const currentDate = new Intl.DateTimeFormat('en-US', {
@@ -23,7 +24,6 @@ export default function OverviewPage({
       : new Date().getHours() < 18
         ? 'Good afternoon'
         : 'Good evening';
-  const aiConnected = overview?.ai === 'gemini';
   const open = tickets.filter((ticket) => ticket.status !== 'resolved');
   const recent = [...tickets]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -34,7 +34,7 @@ export default function OverviewPage({
         <div>
           <div className="eyebrow">{currentDate.toUpperCase()}</div>
           <h1>
-            {greeting}, Jamie <span className="wave">✳</span>
+            {greeting}, {user.name.split(' ')[0]} <span className="wave">✳</span>
           </h1>
           <p>Here’s what’s happening with your support today.</p>
         </div>
@@ -42,6 +42,20 @@ export default function OverviewPage({
           <Plus size={16} /> New ticket
         </button>
       </div>
+      <button className="assistant-spotlight" onClick={onAskAssistant}>
+        <div className="spotlight-symbol">
+          <Sparkles size={23} />
+        </div>
+        <div className="spotlight-copy">
+          <span>YOUR WORKSPACE ASSISTANT</span>
+          <h2>What would you like help with?</h2>
+          <p>Ask about your tickets, orders, policies, or anything you’re working on.</p>
+        </div>
+        <span className="spotlight-action">
+          Ask your assistant <ArrowRight size={16} />
+        </span>
+        <span className="spotlight-glow" aria-hidden="true" />
+      </button>
       <section className="metric-grid">
         <Metric
           title="Open conversations"
@@ -69,13 +83,6 @@ export default function OverviewPage({
           note="Across your storefront"
           icon={Box}
           tone="lavender"
-        />
-        <Metric
-          title="AI assistant"
-          value={aiConnected ? 'Live' : 'Preview'}
-          note={aiConnected ? 'Gemini API connected' : 'Add a Gemini API key for live drafts'}
-          icon={Sparkles}
-          tone="butter"
         />
       </section>
       <section className="content-grid">
@@ -130,27 +137,6 @@ export default function OverviewPage({
           </button>
         </div>
         <div className="right-stack">
-          <div className="panel ai-panel">
-            <div className="ai-panel-top">
-              <div className="ai-spark">
-                <Sparkles size={17} />
-              </div>
-              <span className="beta-tag">YOUR AI SIDEKICK</span>
-              <span className="ai-status">
-                <i /> {aiConnected ? 'Gemini connected' : 'Preview mode'}
-              </span>
-            </div>
-            <h2>A little help goes a long way.</h2>
-            <p>
-              Let AI find the right answer in your knowledge base and give you a thoughtful first
-              draft.
-            </p>
-            <button className="ai-try-button" onClick={onTryDraft}>
-              Try an AI draft <ArrowRight size={15} />
-            </button>
-            <div className="ai-deco deco-one" />
-            <div className="ai-deco deco-two" />
-          </div>
           <div className="panel orders-panel">
             <div className="panel-heading compact">
               <div>
@@ -175,6 +161,9 @@ export default function OverviewPage({
                 <span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span>
               </div>
             ))}
+            {!orders.length && (
+              <div className="empty-state">Your workspace is ready for its first order.</div>
+            )}
           </div>
         </div>
       </section>

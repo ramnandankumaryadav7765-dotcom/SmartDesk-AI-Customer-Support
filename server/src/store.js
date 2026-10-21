@@ -1,48 +1,50 @@
 import { MongoClient } from 'mongodb';
-import { seedKnowledge, seedOrders, seedTickets } from './data.js';
 
 let client;
 let db;
-let memory = {
-  tickets: structuredClone(seedTickets),
-  orders: structuredClone(seedOrders),
-  knowledge: structuredClone(seedKnowledge),
+const memory = {
+  tickets: [],
+  orders: [],
+  knowledge: [],
+  users: [],
+  sessions: [],
 };
 
 export async function connectStore() {
   if (!process.env.MONGODB_URI) {
-    console.log('MongoDB URI not set; starting with sample data in demo mode.');
-    return 'demo';
+    console.log('MongoDB URI not set; starting with empty in-memory storage.');
+    return 'memory';
   }
   client = new MongoClient(process.env.MONGODB_URI);
   await client.connect();
   db = client.db(process.env.MONGODB_DB || 'smartdesk');
-  const collections = ['tickets', 'orders', 'knowledge'];
-  for (const name of collections) {
-    const collection = db.collection(name);
-    if ((await collection.countDocuments()) === 0) {
-      const seed =
-        name === 'tickets' ? seedTickets : name === 'orders' ? seedOrders : seedKnowledge;
-      await collection.insertMany(seed);
-    }
-  }
+  await Promise.all([
+    db.collection('users').createIndex({ email: 1 }, { unique: true }),
+    db.collection('sessions').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    db.collection('tickets').createIndex({ ownerId: 1, id: 1 }, { unique: true }),
+    db.collection('orders').createIndex({ ownerId: 1, orderNumber: 1 }, { unique: true }),
+    db.collection('knowledge').createIndex({ ownerId: 1, id: 1 }, { unique: true }),
+  ]);
   console.log(`Connected to MongoDB database "${db.databaseName}".`);
   return 'mongodb';
 }
 
-export const storageMode = () => (db ? 'mongodb' : 'demo');
+export const storageMode = () => (db ? 'mongodb' : 'memory');
 
 export async function list(name, filter = {}) {
   if (!db)
     return memory[name]
-      .filter((item) =>
-        Object.entries(filter).every(([key, value]) => !value || item[key] === value),
-      )
+      .filter((item) => Object.entries(filter).every(([key, value]) => item[key] === value))
       .sort(
         (a, b) =>
-          new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0),
+          new Date(b.createdAt || b.placedAt || b.updatedAt || 0) -
+          new Date(a.createdAt || a.placedAt || a.updatedAt || 0),
       );
-  return db.collection(name).find(filter).sort({ createdAt: -1, updatedAt: -1 }).toArray();
+  return db
+    .collection(name)
+    .find(filter)
+    .sort({ createdAt: -1, placedAt: -1, updatedAt: -1 })
+    .toArray();
 }
 
 export async function findOne(name, filter) {
@@ -77,6 +79,19 @@ export async function update(name, filter, changes) {
     .collection(name)
     .findOneAndUpdate(filter, { $set: changes }, { returnDocument: 'after' });
   return result;
+}
+
+export async function remove(name, filter) {
+  if (!db) {
+    const index = memory[name].findIndex((entry) =>
+      Object.entries(filter).every(([key, value]) => entry[key] === value),
+    );
+    if (index < 0) return false;
+    memory[name].splice(index, 1);
+    return true;
+  }
+  const result = await db.collection(name).deleteOne(filter);
+  return result.deletedCount > 0;
 }
 
 export async function closeStore() {
