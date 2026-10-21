@@ -97,6 +97,15 @@ function App() {
     await refresh();
   };
 
+  const authenticateWithGoogle = async (credential) => {
+    const result = await smartdeskApi.loginWithGoogle(credential);
+    setUser(result.user);
+    setPage('Overview');
+    setQuery('');
+    setError('');
+    await refresh();
+  };
+
   const signOut = async () => {
     try {
       await smartdeskApi.logout();
@@ -221,7 +230,7 @@ function App() {
   if (!user)
     return (
       <>
-        <AuthPage onAuthenticate={authenticate} />
+        <AuthPage onAuthenticate={authenticate} onGoogleAuthenticate={authenticateWithGoogle} />
         <Toast message={notice} />
       </>
     );
@@ -278,6 +287,7 @@ function App() {
             sources={sources}
             aiSource={aiSource}
             loadingAI={loadingAI}
+            loading={loading}
             user={user}
           />
         )}

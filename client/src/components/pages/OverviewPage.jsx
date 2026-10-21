@@ -34,7 +34,7 @@ export default function OverviewPage({
         <div>
           <div className="eyebrow">{currentDate.toUpperCase()}</div>
           <h1>
-            {greeting}, {user.name.split(' ')[0]} <span className="wave">✳</span>
+            {greeting}, {user.name.split(' ')[0]}
           </h1>
           <p>Here’s what’s happening with your support today.</p>
         </div>

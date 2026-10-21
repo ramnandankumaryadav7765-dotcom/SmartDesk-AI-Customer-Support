@@ -2,7 +2,15 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 async function request(path, options) {
   const response = await fetch(`${API_BASE}${path}`, { credentials: 'include', ...options });
-  const data = await response.json();
+  const body = await response.text();
+  let data;
+  try {
+    data = body ? JSON.parse(body) : {};
+  } catch {
+    throw new Error(
+      'The SmartDesk API did not return JSON. Stop the running app with Ctrl+C, then restart it from the project folder using npm run dev.',
+    );
+  }
   if (!response.ok) throw new Error(data.error || 'The SmartDesk request could not be completed.');
   return data;
 }
@@ -19,6 +27,7 @@ export const smartdeskApi = {
   me: () => request('/auth/me'),
   signup: (account) => sendJson('/auth/signup', account),
   login: (credentials) => sendJson('/auth/login', credentials),
+  loginWithGoogle: (credential) => sendJson('/auth/google', { credential }),
   logout: () => sendJson('/auth/logout', {}),
   async loadWorkspace() {
     const [overview, tickets, orders, knowledge] = await Promise.all([

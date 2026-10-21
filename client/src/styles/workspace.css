@@ -795,6 +795,49 @@ select:focus-visible {
   opacity: 0.65;
   cursor: wait;
 }
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 19px 0 14px;
+  color: #758198;
+  font-size: 12px;
+  font-weight: 650;
+}
+.auth-divider::before,
+.auth-divider::after {
+  height: 1px;
+  flex: 1;
+  background: #e8eaf1;
+  content: '';
+}
+.google-button-shell {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.google-button-shell iframe {
+  max-width: 100%;
+}
+.google-button-shell.is-busy {
+  opacity: 0.58;
+  pointer-events: none;
+}
+.google-button-loading,
+.google-setup-note {
+  color: #758198;
+  font-size: 12px;
+  text-align: center;
+}
+.google-setup-note {
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px dashed #dfe3ed;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.65);
+}
 .auth-error {
   margin: 0;
   padding: 11px 12px;

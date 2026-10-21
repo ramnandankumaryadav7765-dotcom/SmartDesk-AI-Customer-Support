@@ -1,12 +1,101 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Sparkles } from 'lucide-react';
 
-export default function AuthPage({ onAuthenticate }) {
+let googleIdentityPromise;
+let initializedGoogleClientId = '';
+let activeGoogleCredentialHandler = null;
+
+function loadGoogleIdentity() {
+  if (window.google?.accounts?.id) return Promise.resolve(window.google);
+  if (googleIdentityPromise) return googleIdentityPromise;
+  googleIdentityPromise = new Promise((resolve, reject) => {
+    let script = document.getElementById('google-identity-services');
+    if (!script) {
+      script = document.createElement('script');
+      script.id = 'google-identity-services';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+    script.addEventListener('load', () => resolve(window.google), { once: true });
+    script.addEventListener('error', () => reject(new Error('Google sign-in could not load. Check your internet connection and try again.')), { once: true });
+  }).catch((loadError) => {
+    googleIdentityPromise = null;
+    throw loadError;
+  });
+  return googleIdentityPromise;
+}
+
+export default function AuthPage({ onAuthenticate, onGoogleAuthenticate }) {
   const [mode, setMode] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [googleReady, setGoogleReady] = useState(false);
+  const googleButtonRef = useRef(null);
+  const googleHandlerRef = useRef(onGoogleAuthenticate);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
   const isSignup = mode === 'signup';
+
+  useEffect(() => {
+    googleHandlerRef.current = onGoogleAuthenticate;
+  }, [onGoogleAuthenticate]);
+
+  useEffect(() => {
+    if (!googleClientId) return undefined;
+    let mounted = true;
+    loadGoogleIdentity()
+      .then((google) => {
+        if (!mounted) return;
+        activeGoogleCredentialHandler = async (response) => {
+          if (!response.credential) {
+            setError('Google did not return a sign-in credential. Please try again.');
+            return;
+          }
+          setBusy(true);
+          setError('');
+          try {
+            await googleHandlerRef.current(response.credential);
+          } catch (requestError) {
+            setError(requestError.message);
+          } finally {
+            setBusy(false);
+          }
+        };
+        if (initializedGoogleClientId !== googleClientId) {
+          google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: (response) => activeGoogleCredentialHandler?.(response),
+          });
+          initializedGoogleClientId = googleClientId;
+        }
+        setGoogleReady(true);
+      })
+      .catch((loadError) => {
+        if (mounted) setError(loadError.message);
+      });
+    return () => {
+      mounted = false;
+      activeGoogleCredentialHandler = null;
+    };
+  }, [googleClientId]);
+
+  useEffect(() => {
+    const google = window.google;
+    const element = googleButtonRef.current;
+    if (!googleReady || !google?.accounts?.id || !element) return;
+    element.replaceChildren();
+    google.accounts.id.renderButton(element, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      shape: 'pill',
+      text: isSignup ? 'signup_with' : 'signin_with',
+      logo_alignment: 'left',
+      width: Math.min(420, Math.floor(element.clientWidth || 420)),
+    });
+  }, [googleReady, isSignup]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -143,6 +232,20 @@ export default function AuthPage({ onAuthenticate }) {
               <ArrowRight size={17} />
             </button>
           </form>
+          <div className="auth-divider"><span>or continue with</span></div>
+          {googleClientId ? (
+            <div
+              className={`google-button-shell ${busy ? 'is-busy' : ''}`}
+              ref={googleButtonRef}
+              aria-label={isSignup ? 'Sign up with Google' : 'Sign in with Google'}
+            >
+              {!googleReady && <span className="google-button-loading">Loading Google sign-in…</span>}
+            </div>
+          ) : (
+            <p className="google-setup-note" role="status">
+              Google sign-in will appear after its client ID is configured.
+            </p>
+          )}
           <p className="auth-switch">
             {isSignup ? 'Already have an account?' : 'New to SmartDesk?'}{' '}
             <button

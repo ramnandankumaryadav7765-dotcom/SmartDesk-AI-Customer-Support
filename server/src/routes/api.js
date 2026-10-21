@@ -14,6 +14,8 @@ import {
   verifyPassword,
 } from '../services/auth.js';
 import { callAssistant, findRelevantArticle } from '../services/assistant.js';
+import { verifyGoogleCredential } from '../services/google-auth.js';
+import { allowedClientOrigins } from '../origins.js';
 
 const router = Router();
 
@@ -74,6 +76,65 @@ router.post('/auth/login', async (req, res, next) => {
     setSessionCookie(res, session.token, session.expiresAt);
     return res.json({ user: publicUser(user) });
   } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/auth/google', async (req, res, next) => {
+  try {
+    const origin = req.get('origin');
+    if (!origin || !allowedClientOrigins().has(origin)) {
+      return res.status(403).json({ error: 'Google sign-in must start from the SmartDesk app.' });
+    }
+    const credential = String(req.body.credential || '');
+    if (!credential || credential.length > 12000) {
+      return res.status(400).json({ error: 'Google sign-in could not be completed. Try again.' });
+    }
+
+    const identity = await verifyGoogleCredential(credential);
+    let user = await findOne('users', { googleSub: identity.subject });
+
+    if (!user) {
+      const existingEmailUser = await findOne('users', { email: identity.email });
+      if (existingEmailUser?.googleSub && existingEmailUser.googleSub !== identity.subject) {
+        return res.status(409).json({ error: 'That email is linked to a different Google account.' });
+      }
+      if (existingEmailUser) {
+        if (!identity.emailIsAuthoritative) {
+          return res.status(409).json({
+            error: 'An account already uses this email. Sign in with its existing email and password.',
+          });
+        }
+        user = await update(
+          'users',
+          { id: existingEmailUser.id },
+          {
+            googleSub: identity.subject,
+            authProvider: existingEmailUser.passwordHash ? 'password+google' : 'google',
+            googleLinkedAt: new Date().toISOString(),
+          },
+        );
+      } else {
+        user = {
+          id: randomUUID(),
+          name: identity.name || identity.email.split('@')[0],
+          email: identity.email,
+          googleSub: identity.subject,
+          authProvider: 'google',
+          createdAt: new Date().toISOString(),
+        };
+        await insert('users', user);
+      }
+    }
+
+    const session = await createSession(user.id);
+    setSessionCookie(res, session.token, session.expiresAt);
+    return res.json({ user: publicUser(user) });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ error: 'This Google account is already linked to another user.' });
+    }
+    if (error.status) return res.status(error.status).json({ error: error.message });
     return next(error);
   }
 });

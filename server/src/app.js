@@ -1,11 +1,19 @@
 import cors from 'cors';
 import express from 'express';
+import { allowedClientOrigins } from './origins.js';
 import apiRouter from './routes/api.js';
 
 export function createApp() {
   const app = express();
+  const origins = allowedClientOrigins();
   app.use(
-    cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173', credentials: true }),
+    cors({
+      origin(origin, callback) {
+        if (!origin || origins.has(origin)) return callback(null, true);
+        return callback(new Error('This browser origin is not allowed.'));
+      },
+      credentials: true,
+    }),
   );
   app.use(express.json({ limit: '1mb' }));
   app.use('/api', apiRouter);
