@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Sparkles } from 'lucide-react';
+import ThemeToggle from './ThemeToggle.jsx';
 
 let googleIdentityPromise;
 let initializedGoogleClientId = '';
@@ -27,7 +28,7 @@ function loadGoogleIdentity() {
   return googleIdentityPromise;
 }
 
-export default function AuthPage({ onAuthenticate, onGoogleAuthenticate }) {
+export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, onToggleTheme }) {
   const [mode, setMode] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -157,6 +158,7 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate }) {
       </section>
 
       <section className="auth-form-side">
+        <div className="auth-appearance"><ThemeToggle theme={theme} onToggle={onToggleTheme} /></div>
         <div className="auth-mobile-brand">
           <span className="brand-orbit" aria-hidden="true">
             <i />

@@ -13,6 +13,11 @@ import AssistantPage from './components/pages/AssistantPage.jsx';
 import { smartdeskApi } from './api/smartdesk.js';
 
 function App() {
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = window.localStorage.getItem('smartdesk-theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   const [user, setUser] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [page, setPage] = useState('Overview');
@@ -30,6 +35,13 @@ function App() {
   const [error, setError] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('smartdesk-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
 
   const refresh = async () => {
     const workspace = await smartdeskApi.loadWorkspace();
@@ -230,7 +242,12 @@ function App() {
   if (!user)
     return (
       <>
-        <AuthPage onAuthenticate={authenticate} onGoogleAuthenticate={authenticateWithGoogle} />
+        <AuthPage
+          onAuthenticate={authenticate}
+          onGoogleAuthenticate={authenticateWithGoogle}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
         <Toast message={notice} />
       </>
     );
@@ -248,6 +265,8 @@ function App() {
         <Topbar
           page={page}
           user={user}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           query={query}
           onQueryChange={setQuery}
           onNotify={() => setNotice('You’re all caught up.')}
@@ -289,6 +308,7 @@ function App() {
             loadingAI={loadingAI}
             loading={loading}
             user={user}
+            theme={theme}
           />
         )}
         {page === 'Orders' && <OrdersPage orders={orders} query={query} onCreate={createOrder} />}

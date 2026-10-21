@@ -234,9 +234,6 @@
 .sd-linked-order { display: flex; align-items: center; gap: 7px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #f1f2f6; color: #66738a; font-size: 11px; }.sd-linked-order strong { margin-left: auto; color: #5b67c4; font-size: 11px; }.sd-linked-order svg { transform: rotate(-90deg); }
 .sd-insights-foot { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: auto; padding-top: 4px; color: #66738a; font-size: 11px; }.sd-insights-foot svg { color: #47a47a; }
 .sd-insights-empty { justify-content: center; }.sd-insights-placeholder { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 24px 12px; color: #66738a; text-align: center; }.sd-insights-placeholder svg { color: #8491d5; }.sd-insights-placeholder strong { color: var(--sd-ink); font-size: 12px; }.sd-insights-placeholder span { max-width: 180px; font-size: 11px; }
-.sd-theme-toggle { position: fixed; right: 15px; bottom: 13px; z-index: 6; display: flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid var(--sd-line); border-radius: 20px; background: var(--sd-panel); color: var(--sd-muted); box-shadow: var(--sd-shadow); cursor: pointer; font-size: 11px !important; font-weight: 700 !important; }
-.sd-theme-swatch { width: 10px; height: 10px; border-radius: 50%; background: linear-gradient(135deg, #f3c46b 0 50%, #646fc9 50%); }
-
 .sd-inbox-workspace.theme-dark { color-scheme: dark; --sd-bg: #111522; --sd-panel: #181d2b; --sd-panel-soft: #1c2232; --sd-ink: #edf0fa; --sd-muted: #a0a9bd; --sd-line: #2b3143; --sd-accent: #9da8ff; --sd-accent-soft: #272d4b; --sd-shadow: 0 12px 34px rgba(0,0,0,.28); }
 .theme-dark .sd-queue-row { border-bottom-color: #252b3b; }.theme-dark .sd-queue-row:hover { background: #1c2232; }.theme-dark .sd-queue-row.is-active { background: #242a45; }
 .theme-dark .sd-queue-subject,.theme-dark .sd-message-byline strong,.theme-dark .sd-profile-facts strong,.theme-dark .sd-insight-row strong,.theme-dark .sd-sentiment-meter strong,.theme-dark .sd-activity-stats strong { color: #dfe4f5; }
@@ -271,7 +268,6 @@
   .sd-message-feed { padding: 20px 14px; }
   .sd-composer-wrap { padding: 10px 11px; }
   .sd-message { max-width: 96%; }
-  .sd-theme-toggle { right: 12px; bottom: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .sd-inbox-workspace *, .sd-inbox-workspace *::before, .sd-inbox-workspace *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }

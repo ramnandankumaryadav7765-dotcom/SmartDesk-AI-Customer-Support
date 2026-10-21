@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Bell, Command, Search } from 'lucide-react';
+import ThemeToggle from './ThemeToggle.jsx';
 
 const initials = (name = '') =>
   name
@@ -10,7 +11,7 @@ const initials = (name = '') =>
     .join('')
     .toUpperCase();
 
-export default function Topbar({ page, user, query, onQueryChange, onNotify }) {
+export default function Topbar({ page, user, query, onQueryChange, onNotify, theme, onToggleTheme }) {
   const searchRef = useRef(null);
   useEffect(() => {
     const focusSearch = (event) => {
@@ -44,6 +45,7 @@ export default function Topbar({ page, user, query, onQueryChange, onNotify }) {
             <Command size={12} /> K
           </kbd>
         </label>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} compact />
         <button
           className="icon-button notification"
           aria-label="Notifications"

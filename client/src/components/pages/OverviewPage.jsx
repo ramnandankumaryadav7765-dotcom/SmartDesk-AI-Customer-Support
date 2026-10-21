@@ -186,7 +186,6 @@ function Metric({ title, value, note, icon: Icon, tone }) {
       <div className="metric-title">{title}</div>
       <div className="metric-value">{value}</div>
       <div className="metric-note">{note}</div>
-      <div className={`metric-squiggle ${tone}`} />
     </div>
   );
 }

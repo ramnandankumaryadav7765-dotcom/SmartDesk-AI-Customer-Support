@@ -311,15 +311,14 @@ export default function InboxPage({
   loadingAI,
   loading = false,
   user,
+  theme,
 }) {
-  const [theme, setTheme] = useState('light');
   const [mobileConversation, setMobileConversation] = useState(false);
   return (
     <div className={`sd-inbox-workspace theme-${theme} ${mobileConversation ? 'mobile-conversation' : ''}`}>
       <QueueColumn tickets={tickets} query={query} onQueryChange={onQueryChange} selected={selected} onSelect={(ticket) => { onSelect(ticket); setMobileConversation(true); }} onNew={onNew} loading={loading} />
       <ConversationColumn ticket={selected} user={user} onResolve={onResolve} onDraft={onDraft} onSaveReply={onSaveReply} onBack={() => setMobileConversation(false)} reply={reply} setReply={setReply} sources={sources} aiSource={aiSource} loadingAI={loadingAI} />
       <InsightsColumn ticket={selected} />
-      <button type="button" className="sd-theme-toggle" onClick={() => setTheme((value) => value === 'light' ? 'dark' : 'light')} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`} title="Toggle appearance"><span className="sd-theme-swatch" />{theme === 'light' ? 'Light' : 'Dark'}</button>
     </div>
   );
 }

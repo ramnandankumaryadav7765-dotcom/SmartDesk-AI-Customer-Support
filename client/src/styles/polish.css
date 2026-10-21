@@ -190,13 +190,6 @@ textarea:focus-visible {
   margin-top: 3px;
 }
 
-.metric-squiggle {
-  width: 74px;
-  height: 42px;
-  right: 1px;
-  bottom: 5px;
-}
-
 .content-grid {
   gap: 16px;
   margin-top: 18px;
