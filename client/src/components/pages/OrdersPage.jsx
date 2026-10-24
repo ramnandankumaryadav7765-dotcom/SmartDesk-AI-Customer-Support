@@ -6,9 +6,9 @@ export default function OrdersPage({ orders, query, onCreate }) {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
   const visible = orders.filter((order) =>
-    `${order.orderNumber} ${order.customer} ${order.email} ${order.status}`
+    `${order.orderNumber} ${order.customer} ${order.email} ${order.status} ${order.items?.join(' ')}`
       .toLowerCase()
-      .includes(query.toLowerCase()),
+      .includes(query.trim().toLowerCase()),
   );
 
   const submit = async (event) => {

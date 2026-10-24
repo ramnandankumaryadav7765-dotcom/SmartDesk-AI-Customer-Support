@@ -54,7 +54,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
   const visible = knowledge.filter((article) =>
     `${article.title} ${article.category} ${article.content}`
       .toLowerCase()
-      .includes(query.toLowerCase()),
+      .includes(query.trim().toLowerCase()),
   );
 
   return (

@@ -99,12 +99,63 @@ function App() {
   const filteredTickets = useMemo(
     () =>
       tickets.filter((ticket) =>
-        `${ticket.customer} ${ticket.subject} ${ticket.orderNumber}`
+        `${ticket.customer} ${ticket.subject} ${ticket.orderNumber} ${ticket.email} ${ticket.preview}`
           .toLowerCase()
-          .includes(query.toLowerCase()),
+          .includes(query.trim().toLowerCase()),
       ),
     [tickets, query],
   );
+
+  const searchResults = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return [];
+    const ticketResults = tickets
+      .filter((ticket) =>
+        `${ticket.customer} ${ticket.subject} ${ticket.orderNumber} ${ticket.email} ${ticket.preview}`
+          .toLowerCase()
+          .includes(term),
+      )
+      .map((item) => ({
+        kind: 'Ticket',
+        target: 'Inbox',
+        item,
+        title: item.subject || 'Support ticket',
+        detail: `${item.customer || 'Customer'}${item.orderNumber ? ` · ${item.orderNumber}` : ''}`,
+      }));
+    const orderResults = orders
+      .filter((order) =>
+        `${order.orderNumber} ${order.customer} ${order.email} ${order.status} ${order.items?.join(' ')}`
+          .toLowerCase()
+          .includes(term),
+      )
+      .map((item) => ({
+        kind: 'Order',
+        target: 'Orders',
+        item,
+        title: item.orderNumber,
+        detail: `${item.customer || 'Customer'} · ${item.status}`,
+      }));
+    const articleResults = knowledge
+      .filter((article) =>
+        `${article.title} ${article.category} ${article.content}`.toLowerCase().includes(term),
+      )
+      .map((item) => ({
+        kind: 'Article',
+        target: 'Knowledge base',
+        item,
+        title: item.title,
+        detail: item.category || 'Knowledge base',
+      }));
+    return [...ticketResults, ...orderResults, ...articleResults].slice(0, 8);
+  }, [tickets, orders, knowledge, query]);
+
+  const openSearchResult = (result) => {
+    if (result.target === 'Inbox') {
+      setSelectedId(result.item.id);
+      setReply('');
+    }
+    setPage(result.target);
+  };
 
   const authenticate = async (mode, values) => {
     const result =
@@ -343,6 +394,8 @@ function App() {
           onToggleTheme={toggleTheme}
           query={query}
           onQueryChange={setQuery}
+          searchResults={searchResults}
+          onSearchResult={openSearchResult}
           onNotify={() => setNotice('You’re all caught up.')}
           onProfile={() => setShowProfile(true)}
         />
