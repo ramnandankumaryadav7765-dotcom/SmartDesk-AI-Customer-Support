@@ -5,3 +5,4 @@ server/firebase-service-account*.json
 client/.env.local
 client/.env.*.local
 .DS_Store
+server/firebase-service-account.json
