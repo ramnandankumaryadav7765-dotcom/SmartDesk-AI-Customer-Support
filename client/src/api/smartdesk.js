@@ -45,4 +45,6 @@ export const smartdeskApi = {
   draftReply: (message) => sendJson('/assistant/draft', { message }),
   askAssistant: (message, history = []) => sendJson('/assistant/ask', { message, history: history.slice(-8) }),
   createArticle: (article) => sendJson('/knowledge', article),
+  updateArticle: (id, article) => sendJson(`/knowledge/${encodeURIComponent(id)}`, article, 'PATCH'),
+  deleteArticle: (id) => request(`/knowledge/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import { makeArticle, makeOrder, makeTicket } from '../data.js';
-import { findOne, insert, list, storageMode, update } from '../store.js';
+import { findOne, insert, list, remove, storageMode, update } from '../store.js';
 import {
   createSession,
   deleteSession,
@@ -270,6 +270,40 @@ router.post('/knowledge', async (req, res, next) => {
     res.status(201).json(await insert('knowledge', makeArticle(req.body, req.user.id)));
   } catch (error) {
     next(error);
+  }
+});
+
+router.patch('/knowledge/:id', async (req, res, next) => {
+  try {
+    const title = String(req.body.title || '').trim();
+    const content = String(req.body.content || '').trim();
+    if (!title || !content) {
+      return res.status(400).json({ error: 'An article title and content are required.' });
+    }
+    const article = await update(
+      'knowledge',
+      { id: req.params.id, ownerId: req.user.id },
+      {
+        title,
+        category: String(req.body.category || 'General').trim() || 'General',
+        content,
+        updatedAt: new Date().toISOString(),
+      },
+    );
+    if (!article) return res.status(404).json({ error: 'Article not found.' });
+    return res.json(article);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.delete('/knowledge/:id', async (req, res, next) => {
+  try {
+    const deleted = await remove('knowledge', { id: req.params.id, ownerId: req.user.id });
+    if (!deleted) return res.status(404).json({ error: 'Article not found.' });
+    return res.json({ ok: true });
+  } catch (error) {
+    return next(error);
   }
 });
 

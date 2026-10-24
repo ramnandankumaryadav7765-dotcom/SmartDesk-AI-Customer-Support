@@ -137,6 +137,8 @@ tbody tr:last-child td {
   gap: 12px;
 }
 .knowledge-card {
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border: 1px solid #e9ece8;
   border-radius: 9px;
@@ -208,6 +210,53 @@ tbody tr:last-child td {
   padding-top: 9px;
   color: #a0a8a2;
   font-size: 8px;
+}
+.article-open-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  padding: 2px 0;
+  background: transparent;
+  color: #527d5d;
+  font-size: 10px;
+  font-weight: 700;
+}
+.article-open-button:hover { color: #315c3d; }
+.article-open-button:focus-visible,
+.article-action-button:focus-visible {
+  outline: 3px solid #9bb9ff;
+  outline-offset: 3px;
+}
+.article-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+.article-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid #e5e9e6;
+  border-radius: 9px;
+  padding: 0 12px;
+  background: #fff;
+  color: #657168;
+  font-size: 11px;
+  font-weight: 700;
+}
+.article-action-button:hover { background: #f7f8f7; }
+.article-delete-button { color: #b84242; }
+.article-delete-button:hover { border-color: #f1cece; background: #fff6f6; }
+.article-action-button:disabled,
+.article-modal-actions .primary-button:disabled,
+.new-ticket-modal .primary-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 .knowledge-card-footer svg {
   color: #6e8b71;

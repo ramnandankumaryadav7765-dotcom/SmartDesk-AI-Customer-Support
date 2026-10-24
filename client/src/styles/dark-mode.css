@@ -178,6 +178,18 @@
 :root[data-theme='dark'] .knowledge-category,
 :root[data-theme='dark'] .article-total { color: #aab6ac; }
 :root[data-theme='dark'] .knowledge-card:hover { border-color: #536d5c; background: #202a35; }
+:root[data-theme='dark'] .article-open-button { color: #a9d8b2; }
+:root[data-theme='dark'] .article-action-button {
+  border-color: #414a5e;
+  background: #222a3b;
+  color: #d0d7e6;
+}
+:root[data-theme='dark'] .article-action-button:hover { background: #2a3346; }
+:root[data-theme='dark'] .article-delete-button { color: #ffaaaa; }
+:root[data-theme='dark'] .article-delete-button:hover {
+  border-color: #734849;
+  background: #39282c;
+}
 :root[data-theme='dark'] .orders-empty,
 :root[data-theme='dark'] .knowledge-empty { color: #aab4c7; }
 :root[data-theme='dark'] .orders-empty strong,

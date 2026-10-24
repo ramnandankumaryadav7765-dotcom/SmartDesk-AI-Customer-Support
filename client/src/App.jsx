@@ -252,14 +252,35 @@ function App() {
     setNotice('Order saved to your workspace.');
   };
 
-  const createArticle = async (event) => {
-    event.preventDefault();
+  const createArticle = async (articleData) => {
     try {
-      const article = await smartdeskApi.createArticle(
-        Object.fromEntries(new FormData(event.currentTarget)),
-      );
+      const article = await smartdeskApi.createArticle(articleData);
       setKnowledge((items) => [article, ...items]);
       setNotice('Knowledge article added.');
+      return true;
+    } catch (requestError) {
+      setNotice(requestError.message);
+      return false;
+    }
+  };
+
+  const updateArticle = async (id, articleData) => {
+    try {
+      const updated = await smartdeskApi.updateArticle(id, articleData);
+      setKnowledge((items) => items.map((article) => (article.id === id ? updated : article)));
+      setNotice('Knowledge article updated.');
+      return true;
+    } catch (requestError) {
+      setNotice(requestError.message);
+      return false;
+    }
+  };
+
+  const deleteArticle = async (id) => {
+    try {
+      await smartdeskApi.deleteArticle(id);
+      setKnowledge((items) => items.filter((article) => article.id !== id));
+      setNotice('Knowledge article deleted.');
       return true;
     } catch (requestError) {
       setNotice(requestError.message);
@@ -352,7 +373,13 @@ function App() {
         )}
         {page === 'Orders' && <OrdersPage orders={orders} query={query} onCreate={createOrder} />}
         {page === 'Knowledge base' && (
-          <KnowledgePage knowledge={knowledge} query={query} onCreate={createArticle} />
+          <KnowledgePage
+            knowledge={knowledge}
+            query={query}
+            onCreate={createArticle}
+            onUpdate={updateArticle}
+            onDelete={deleteArticle}
+          />
         )}
         {page === 'AI assistant' && (
           <AssistantPage

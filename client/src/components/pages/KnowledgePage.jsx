@@ -1,18 +1,62 @@
 import { useState } from 'react';
-import { ArrowRight, BookOpen, Plus, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Pencil, Plus, Trash2, X } from 'lucide-react';
 
-export default function KnowledgePage({ knowledge, query = '', onCreate }) {
+export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdate, onDelete }) {
   const [active, setActive] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const submitArticle = async (event) => {
-    const saved = await onCreate(event);
-    if (saved) setAdding(false);
+    event.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    try {
+      const articleData = Object.fromEntries(new FormData(event.currentTarget));
+      const saved = editing
+        ? await onUpdate(editing.id, articleData)
+        : await onCreate(articleData);
+      if (saved) {
+        setAdding(false);
+        setEditing(null);
+        setActive(null);
+      }
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const startAdding = () => {
+    setActive(null);
+    setEditing(null);
+    setAdding(true);
+  };
+
+  const startEditing = () => {
+    setEditing(active);
+    setActive(null);
+    setAdding(true);
+  };
+
+  const deleteActiveArticle = async () => {
+    if (!active || deleting) return;
+    const confirmed = window.confirm(`Delete “${active.title}”? This cannot be undone.`);
+    if (!confirmed) return;
+    setDeleting(true);
+    try {
+      if (await onDelete(active.id)) setActive(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const visible = knowledge.filter((article) =>
     `${article.title} ${article.category} ${article.content}`
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
+
   return (
     <div className="page-content data-page">
       <div className="welcome-row">
@@ -21,7 +65,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate }) {
           <h1>Knowledge base</h1>
           <p>Save the trusted answers your assistant can use across your workspace.</p>
         </div>
-        <button className="primary-button" onClick={() => setAdding(true)}>
+        <button className="primary-button" onClick={startAdding}>
           <Plus size={16} /> Add an article
         </button>
       </div>
@@ -37,7 +81,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate }) {
       </div>
       <div className="knowledge-grid">
         {visible.map((article, index) => (
-          <button className="knowledge-card" key={article.id} onClick={() => setActive(article)}>
+          <article className="knowledge-card" key={article.id}>
             <div className={`knowledge-card-icon icon-tone-${index % 4}`}>
               <BookOpen size={17} />
             </div>
@@ -52,9 +96,16 @@ export default function KnowledgePage({ knowledge, query = '', onCreate }) {
                   day: 'numeric',
                 })}
               </span>
-              <ArrowRight size={14} />
+              <button
+                type="button"
+                className="article-open-button"
+                onClick={() => setActive(article)}
+                aria-label={`View ${article.title}`}
+              >
+                View <ArrowRight size={14} />
+              </button>
             </div>
-          </button>
+          </article>
         ))}
         {!visible.length && (
           <div className="knowledge-empty">
@@ -70,16 +121,23 @@ export default function KnowledgePage({ knowledge, query = '', onCreate }) {
                 : 'Add shop policies, product details, or team guidance for your assistant.'}
             </p>
             {!knowledge.length && (
-              <button className="text-button" onClick={() => setAdding(true)}>
+              <button className="text-button" onClick={startAdding}>
                 Add your first article <ArrowRight size={15} />
               </button>
             )}
           </div>
         )}
       </div>
+
       {active && (
         <div className="modal-backdrop" onClick={() => setActive(null)}>
-          <div className="article-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="article-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="article-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
             <button
               className="icon-button article-close"
               onClick={() => setActive(null)}
@@ -88,31 +146,56 @@ export default function KnowledgePage({ knowledge, query = '', onCreate }) {
               <X size={18} />
             </button>
             <span className="knowledge-category">{active.category}</span>
-            <h2>{active.title}</h2>
-            <p>{active.content}</p>
+            <h2 id="article-dialog-title">{active.title}</h2>
+            <p className="article-full-content">{active.content}</p>
             <div className="article-modal-foot">
               <BookOpen size={14} /> Used as a reference when drafting AI replies
+            </div>
+            <div className="article-modal-actions">
+              <button
+                className="article-action-button article-delete-button"
+                onClick={deleteActiveArticle}
+                disabled={deleting}
+              >
+                <Trash2 size={15} /> {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+              <button
+                className="primary-button"
+                onClick={startEditing}
+                disabled={deleting}
+              >
+                <Pencil size={15} /> Edit article
+              </button>
             </div>
           </div>
         </div>
       )}
+
       {adding && (
         <div className="modal-backdrop" onClick={() => setAdding(false)}>
           <form
+            key={editing?.id || 'new-article'}
             className="new-ticket-modal"
             onSubmit={submitArticle}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-heading">
               <div>
                 <span className="eyebrow">ANSWER LIBRARY</span>
-                <h2>Add an article</h2>
-                <p>Give the assistant a trusted source for shop questions.</p>
+                <h2>{editing ? 'Edit article' : 'Add an article'}</h2>
+                <p>
+                  {editing
+                    ? 'Update the trusted answer used by your assistant.'
+                    : 'Give the assistant a trusted source for shop questions.'}
+                </p>
               </div>
               <button
                 type="button"
                 className="icon-button"
-                onClick={() => setAdding(false)}
+                onClick={() => {
+                  setAdding(false);
+                  setEditing(null);
+                }}
                 aria-label="Close article form"
               >
                 <X size={18} />
@@ -120,14 +203,19 @@ export default function KnowledgePage({ knowledge, query = '', onCreate }) {
             </div>
             <label>
               Article title
-              <input name="title" placeholder="e.g. Gift card policy" required />
+              <input
+                name="title"
+                placeholder="e.g. Gift card policy"
+                defaultValue={editing?.title || ''}
+                required
+              />
             </label>
             <label>
               Category
               <input
                 name="category"
                 placeholder="Orders, Returns, Products..."
-                defaultValue="General"
+                defaultValue={editing?.category || 'General'}
               />
             </label>
             <label>
@@ -136,13 +224,15 @@ export default function KnowledgePage({ knowledge, query = '', onCreate }) {
                 name="content"
                 rows="6"
                 placeholder="Add the policy or answer in clear language..."
+                defaultValue={editing?.content || ''}
                 required
               />
             </label>
             <div className="modal-footer">
-              <span>Saved articles can be used in AI reply drafts.</span>
-              <button className="primary-button" type="submit">
-                Save article <ArrowRight size={15} />
+              <span>Only your signed-in workspace can access this article.</span>
+              <button className="primary-button" type="submit" disabled={saving}>
+                {saving ? 'Saving…' : editing ? 'Save changes' : 'Save article'}
+                <ArrowRight size={15} />
               </button>
             </div>
           </form>
