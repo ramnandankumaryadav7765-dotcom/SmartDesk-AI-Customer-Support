@@ -27,7 +27,7 @@ export const smartdeskApi = {
   me: () => request('/auth/me'),
   signup: (account) => sendJson('/auth/signup', account),
   login: (credentials) => sendJson('/auth/login', credentials),
-  loginWithGoogle: (credential) => sendJson('/auth/google', { credential }),
+  loginWithFirebase: (idToken) => sendJson('/auth/firebase', { idToken }),
   logout: () => sendJson('/auth/logout', {}),
   async loadWorkspace() {
     const [overview, tickets, orders, knowledge] = await Promise.all([

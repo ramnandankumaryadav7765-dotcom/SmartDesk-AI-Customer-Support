@@ -21,6 +21,7 @@ export async function connectStore() {
   await Promise.all([
     db.collection('users').createIndex({ email: 1 }, { unique: true }),
     db.collection('users').createIndex({ googleSub: 1 }, { unique: true, sparse: true }),
+    db.collection('users').createIndex({ firebaseUid: 1 }, { unique: true, sparse: true }),
     db.collection('sessions').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     db.collection('tickets').createIndex({ ownerId: 1, id: 1 }, { unique: true }),
     db.collection('orders').createIndex({ ownerId: 1, orderNumber: 1 }, { unique: true }),

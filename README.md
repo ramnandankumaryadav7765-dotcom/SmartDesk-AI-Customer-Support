@@ -30,7 +30,7 @@ Open `http://localhost:5173`. The first screen is sign-in; choose **Create an ac
 
 ## Environment settings
 
-The backend reads `server/.env`. Copy `server/.env.example` to `server/.env`, then set your MongoDB Atlas URI, Gemini API key, and Google OAuth web client ID:
+The backend reads `server/.env`. Copy `server/.env.example` to `server/.env`, then set your MongoDB Atlas URI, Gemini API key, and Firebase project ID:
 
 ```env
 PORT=4000
@@ -38,21 +38,27 @@ MONGODB_URI=your_mongodb_atlas_connection_string
 MONGODB_DB=SmartDesk-AI-Customer-Support
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-3.8-flash
-GOOGLE_CLIENT_ID=your-google-oauth-web-client-id.apps.googleusercontent.com
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_SERVICE_ACCOUNT_PATH=./firebase-service-account.json
 CLIENT_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175
 ```
 
-Create `client/.env.local` with the same Google web client ID:
+Create `client/.env.local` from the Firebase web app configuration:
 
 ```env
-VITE_GOOGLE_CLIENT_ID=your-google-oauth-web-client-id.apps.googleusercontent.com
+VITE_FIREBASE_API_KEY=your-firebase-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-firebase-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-web-app-id
 ```
 
-To create the Google client ID, open Google Cloud Console, configure the OAuth consent screen, then create an OAuth client with application type **Web application**. Add the exact address you use to open SmartDesk (for example `http://localhost:5175`) under **Authorized JavaScript origins**. If the consent screen is in testing mode, add your Google account as a test user. Put the client ID in both environment files; do not put a client secret in the browser app. The API verifies the Google ID token before creating or signing into a SmartDesk session.
+In Firebase Console, enable **Authentication → Sign-in method → Google** and add `localhost` to Authentication's authorized domains. Download a service account key from **Project settings → Service accounts → Generate new private key**, then place the JSON file at `server/firebase-service-account.json`. This file is ignored by Git and must remain private. Set `FIREBASE_PROJECT_ID` to the `project_id` in that JSON and the same project ID from the Firebase web app config. The client sends a Firebase ID token to the API, which verifies it with the Firebase Admin SDK before creating or signing into a SmartDesk session. Firebase's Google provider uses the basic identity profile; SmartDesk does not request Google Drive, Gmail, or other Google data scopes.
 
-Keep `server/.env` private. It is excluded from Git. `client/.env.local` is also excluded from Git. Restart both the app and server after changing settings.
+Keep `server/.env` and `server/firebase-service-account.json` private. Both are excluded from Git. `client/.env.local` is also excluded from Git. Restart both the app and server after changing settings.
 
-Google sign-in creates a SmartDesk account on first use. A verified Gmail or Google Workspace email matching an existing account is linked to that account so its saved workspace data remains available. For other email addresses, sign in with the existing password account. Google-only accounts do not store a password hash.
+Google sign-in creates a Firebase Auth identity and a SmartDesk account on first use. A verified Google email matching an existing SmartDesk account is linked to that account so its saved workspace data remains available. Google-only accounts do not store a password hash in MongoDB.
 
 ## Account data and AI
 

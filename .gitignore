@@ -1,6 +1,7 @@
 node_modules
 client/dist
 server/.env
+server/firebase-service-account*.json
 client/.env.local
 client/.env.*.local
 .DS_Store

@@ -11,6 +11,7 @@ import OrdersPage from './components/pages/OrdersPage.jsx';
 import KnowledgePage from './components/pages/KnowledgePage.jsx';
 import AssistantPage from './components/pages/AssistantPage.jsx';
 import { smartdeskApi } from './api/smartdesk.js';
+import { signInWithGoogle, signOutFromFirebase } from './firebase.js';
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -113,13 +114,19 @@ function App() {
     await refresh();
   };
 
-  const authenticateWithGoogle = async (credential) => {
-    const result = await smartdeskApi.loginWithGoogle(credential);
-    setUser(result.user);
-    setPage('Overview');
-    setQuery('');
-    setError('');
-    await refresh();
+  const authenticateWithGoogle = async () => {
+    const idToken = await signInWithGoogle();
+    try {
+      const result = await smartdeskApi.loginWithFirebase(idToken);
+      setUser(result.user);
+      setPage('Overview');
+      setQuery('');
+      setError('');
+      await refresh();
+    } catch (error) {
+      await signOutFromFirebase();
+      throw error;
+    }
   };
 
   const signOut = async () => {
@@ -129,6 +136,11 @@ function App() {
       await smartdeskApi.logout();
     } catch {
       /* Clear local account view even if the API is unavailable. */
+    }
+    try {
+      await signOutFromFirebase();
+    } catch {
+      /* Clear the SmartDesk session even if Firebase sign-out is unavailable. */
     }
     setUser(null);
     setOverview(null);

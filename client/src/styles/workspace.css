@@ -813,19 +813,33 @@ select:focus-visible {
 }
 .google-button-shell {
   display: flex;
+  width: 100%;
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  gap: 11px;
+  padding: 0 16px;
+  border: 1px solid #dfe3ed;
+  border-radius: 12px;
+  background: #fff;
+  color: #303746;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
-.google-button-shell iframe {
-  max-width: 100%;
+.google-button-shell:hover:not(:disabled) {
+  border-color: #c7cedd;
+  background: #fafbfe;
+  box-shadow: 0 3px 10px rgba(34, 46, 71, 0.08);
 }
-.google-button-shell.is-busy {
-  opacity: 0.58;
-  pointer-events: none;
+.google-button-shell:focus-visible {
+  outline: 3px solid rgba(91, 103, 196, 0.28);
+  outline-offset: 2px;
 }
-.google-button-loading,
+.google-button-shell:disabled { cursor: wait; opacity: 0.62; }
+.google-button-shell svg { width: 19px; height: 19px; flex: none; }
 .google-setup-note {
   color: #758198;
   font-size: 12px;
