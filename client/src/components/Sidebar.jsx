@@ -1,4 +1,5 @@
-import { Activity, BookOpen, Bot, Box, Inbox, LogOut, Sparkles } from 'lucide-react';
+import { Activity, BookOpen, Bot, Box, Inbox, Sparkles } from 'lucide-react';
+import UserAvatar from './UserAvatar.jsx';
 
 const navigation = [
   { label: 'Overview', icon: Activity },
@@ -8,16 +9,7 @@ const navigation = [
   { label: 'Knowledge base', icon: BookOpen },
 ];
 
-const initials = (name = '') =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-
-export default function Sidebar({ page, openCount = 0, user, onNavigate, onSignOut }) {
+export default function Sidebar({ page, openCount = 0, user, onNavigate, onProfile }) {
   return (
     <aside className="sidebar">
       <button
@@ -34,7 +26,7 @@ export default function Sidebar({ page, openCount = 0, user, onNavigate, onSignO
         <span>smartdesk</span>
       </button>
       <div className="workspace-switch">
-        <div className="shop-avatar">{initials(user?.name) || 'S'}</div>
+        <UserAvatar user={user} className="shop-avatar" />
         <div className="workspace-copy">
           <strong>{user?.name}</strong>
           <small>Personal workspace</small>
@@ -66,13 +58,13 @@ export default function Sidebar({ page, openCount = 0, user, onNavigate, onSignO
           </div>
           <span className="online-dot" />
         </button>
-        <button className="profile-button" type="button" onClick={onSignOut} title="Sign out">
-          <div className="avatar profile-avatar">{initials(user?.name)}</div>
+        <button className="profile-button" type="button" onClick={onProfile} title="Open profile settings">
+          <UserAvatar user={user} className="avatar profile-avatar" />
           <div className="profile-copy">
             <strong>{user?.name}</strong>
-            <small>Sign out</small>
+            <small>Edit profile</small>
           </div>
-          <LogOut size={17} aria-hidden="true" />
+          <span className="profile-open-label">Profile</span>
         </button>
       </div>
     </aside>

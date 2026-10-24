@@ -155,6 +155,43 @@ router.post('/auth/logout', async (req, res, next) => {
 
 router.use(requireAuth);
 
+router.patch('/profile', async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    const contactEmail = String(req.body.contactEmail || '').trim().toLowerCase();
+    const phone = String(req.body.phone || '').trim();
+    const address = String(req.body.address || '').trim();
+    const profilePicture = String(req.body.profilePicture || '');
+
+    if (name.length < 2 || name.length > 60) {
+      return res.status(400).json({ error: 'Enter your name (2–60 characters).' });
+    }
+    if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      return res.status(400).json({ error: 'Enter a valid contact email address.' });
+    }
+    if (phone.length > 32 || address.length > 300) {
+      return res.status(400).json({ error: 'Phone or address is too long.' });
+    }
+    if (
+      profilePicture.length > 250_000 ||
+      (profilePicture &&
+        !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(profilePicture))
+    ) {
+      return res.status(400).json({ error: 'Choose a smaller JPEG, PNG, or WebP profile picture.' });
+    }
+
+    const user = await update(
+      'users',
+      { id: req.user.id },
+      { name, contactEmail, phone, address, profilePicture },
+    );
+    if (!user) return res.status(404).json({ error: 'Account not found.' });
+    return res.json({ user: publicUser(user) });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.get('/overview', async (req, res, next) => {
   try {
     const ownerId = req.user.id;

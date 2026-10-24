@@ -5,6 +5,8 @@ SmartDesk is a learning project for a small-shop support workspace. Users create
 ## Features
 
 - Sign-up, sign-in, and sign-out with an HTTP-only session cookie
+- Editable account profile with contact details and a resized profile picture
+- Logout confirmation before ending a session
 - Scrypt password hashing; passwords are never stored as plain text
 - Account-scoped tickets, orders, and knowledge articles
 - Create tickets, save internal replies, and resolve or reopen conversations

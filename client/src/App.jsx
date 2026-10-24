@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar.jsx';
 import Topbar from './components/Topbar.jsx';
 import NewTicketModal from './components/NewTicketModal.jsx';
 import AuthPage from './components/AuthPage.jsx';
+import ProfileModal from './components/ProfileModal.jsx';
 import Toast from './components/Toast.jsx';
 import OverviewPage from './components/pages/OverviewPage.jsx';
 import InboxPage from './components/pages/InboxPage.jsx';
@@ -39,6 +40,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -153,6 +155,18 @@ function App() {
     setAssistantError('');
     setPage('Overview');
     setNotice('You are signed out.');
+  };
+
+  const saveProfile = async (profile) => {
+    try {
+      const result = await smartdeskApi.updateProfile(profile);
+      setUser(result.user);
+      setNotice('Your profile has been updated.');
+      return true;
+    } catch (requestError) {
+      setNotice(requestError.message);
+      return false;
+    }
   };
 
   const askAssistant = async (question, history) => {
@@ -319,7 +333,7 @@ function App() {
         openCount={overview?.openTickets || 0}
         user={user}
         onNavigate={setPage}
-        onSignOut={signOut}
+        onProfile={() => setShowProfile(true)}
       />
       <main className="main-area">
         <Topbar
@@ -330,6 +344,7 @@ function App() {
           query={query}
           onQueryChange={setQuery}
           onNotify={() => setNotice('You’re all caught up.')}
+          onProfile={() => setShowProfile(true)}
         />
         {error && (
           <div className="error-banner">
@@ -394,6 +409,13 @@ function App() {
         )}
       </main>
       <NewTicketModal open={showNew} onClose={() => setShowNew(false)} onSubmit={createTicket} />
+      <ProfileModal
+        open={showProfile}
+        user={user}
+        onClose={() => setShowProfile(false)}
+        onSave={saveProfile}
+        onSignOut={signOut}
+      />
       <Toast message={notice} />
     </div>
   );

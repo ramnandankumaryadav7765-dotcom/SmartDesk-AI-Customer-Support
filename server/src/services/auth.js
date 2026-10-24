@@ -73,7 +73,15 @@ export function clearSessionCookie(response) {
 }
 
 export function publicUser(user) {
-  return { id: user.id, name: user.name, email: user.email };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    contactEmail: user.contactEmail || '',
+    phone: user.phone || '',
+    address: user.address || '',
+    profilePicture: user.profilePicture || '',
+  };
 }
 
 export async function requireAuth(request, response, next) {

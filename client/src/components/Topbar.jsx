@@ -1,17 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Bell, Command, Search } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
+import UserAvatar from './UserAvatar.jsx';
 
-const initials = (name = '') =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-
-export default function Topbar({ page, user, query, onQueryChange, onNotify, theme, onToggleTheme }) {
+export default function Topbar({ page, user, query, onQueryChange, onNotify, onProfile, theme, onToggleTheme }) {
   const searchRef = useRef(null);
   useEffect(() => {
     const focusSearch = (event) => {
@@ -54,9 +46,9 @@ export default function Topbar({ page, user, query, onQueryChange, onNotify, the
         >
           <Bell size={19} />
         </button>
-        <div className="top-avatar avatar" aria-label={user?.name}>
-          {initials(user?.name)}
-        </div>
+        <button className="top-profile-button" type="button" onClick={onProfile} aria-label="Open your profile">
+          <UserAvatar user={user} className="top-avatar avatar" />
+        </button>
       </div>
     </header>
   );
