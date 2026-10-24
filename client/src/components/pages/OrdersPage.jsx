@@ -69,7 +69,7 @@ export default function OrdersPage({ orders, query, onCreate, onUpdate }) {
     setItemPolicies([]);
   };
   const visible = orders.filter((order) =>
-    `${order.orderNumber} ${order.customer} ${order.email} ${order.status} ${order.items?.join(' ')}`
+    `${order.orderNumber} ${order.customer} ${order.email} ${order.phone} ${order.status} ${order.items?.join(' ')}`
       .toLowerCase()
       .includes(query.trim().toLowerCase()),
   );
@@ -132,7 +132,13 @@ export default function OrdersPage({ orders, query, onCreate, onUpdate }) {
                   <td>
                     <div className="table-person">
                       <div className="avatar tiny-avatar">{initial(order.customer)}</div>
-                      <span>{order.customer}</span>
+                      <div>
+                        <span>{order.customer}</span>
+                        <small className="order-contact-note">
+                          {[order.email, order.phone].filter(Boolean).join(' · ') ||
+                            'No contact match'}
+                        </small>
+                      </div>
                     </div>
                   </td>
                   <td className="items-cell">
@@ -255,6 +261,15 @@ export default function OrdersPage({ orders, query, onCreate, onUpdate }) {
                   defaultValue={editingOrder?.email || ''}
                 />
               </label>
+              <label>
+                Phone number
+                <input
+                  name="phone"
+                  type="tel"
+                  placeholder="+14155550123 (include country code)"
+                  defaultValue={editingOrder?.phone || ''}
+                />
+              </label>
             </div>
             <label>
               Items{' '}
@@ -355,7 +370,10 @@ export default function OrdersPage({ orders, query, onCreate, onUpdate }) {
               </p>
             )}
             <div className="modal-footer">
-              <span>Return windows start from the delivery date.</span>
+              <span>
+                Customer must sign in with this email or verified phone. Return windows start on
+                delivery.
+              </span>
               <button className="primary-button" type="submit">
                 {editingOrder ? 'Save policy' : 'Save order'} <ArrowRight size={15} />
               </button>

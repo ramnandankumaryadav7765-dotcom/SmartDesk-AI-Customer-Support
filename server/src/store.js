@@ -22,11 +22,13 @@ export async function connectStore() {
     db.collection('users').createIndex({ email: 1 }, { unique: true }),
     db.collection('users').createIndex({ googleSub: 1 }, { unique: true, sparse: true }),
     db.collection('users').createIndex({ firebaseUid: 1 }, { unique: true, sparse: true }),
+    db.collection('users').createIndex({ verifiedPhone: 1 }, { unique: true, sparse: true }),
     db.collection('sessions').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     db.collection('tickets').createIndex({ ownerId: 1, id: 1 }, { unique: true }),
     db.collection('tickets').createIndex({ ownerId: 1, customerId: 1, createdAt: -1 }),
     db.collection('orders').createIndex({ ownerId: 1, orderNumber: 1 }, { unique: true }),
     db.collection('orders').createIndex({ ownerId: 1, email: 1, placedAt: -1 }),
+    db.collection('orders').createIndex({ ownerId: 1, phone: 1, placedAt: -1 }),
     db.collection('knowledge').createIndex({ ownerId: 1, id: 1 }, { unique: true }),
   ]);
   console.log(`Connected to MongoDB database "${db.databaseName}".`);

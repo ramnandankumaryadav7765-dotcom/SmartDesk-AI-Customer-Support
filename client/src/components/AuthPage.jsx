@@ -1,13 +1,30 @@
 import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Sparkles } from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
-import { firebaseSignInErrorMessage, isFirebaseConfigured } from '../firebase.js';
+import {
+  clearPhoneSignInVerifier,
+  confirmPhoneSignInCode,
+  firebaseSignInErrorMessage,
+  isFirebaseConfigured,
+  sendPhoneSignInCode,
+} from '../firebase.js';
 
-export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, onToggleTheme }) {
+export default function AuthPage({
+  onAuthenticate,
+  onGoogleAuthenticate,
+  onPhoneAuthenticate,
+  theme,
+  onToggleTheme,
+}) {
   const [mode, setMode] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneSignIn, setPhoneSignIn] = useState(null);
+  const [phoneError, setPhoneError] = useState('');
   const isSignup = mode === 'signup';
 
   const submit = async (event) => {
@@ -34,6 +51,50 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
     } finally {
       setBusy(false);
     }
+  };
+
+  const requestPhoneCode = async () => {
+    const normalizedPhone = phoneNumber.trim().replace(/[\s()-]/g, '');
+    if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
+      setPhoneError('Enter your full number with the country code, for example +14155550123.');
+      return;
+    }
+    setBusy(true);
+    setPhoneError('');
+    try {
+      clearPhoneSignInVerifier(phoneSignIn);
+      const signIn = await sendPhoneSignInCode(normalizedPhone);
+      setPhoneSignIn(signIn);
+      setPhoneError('Verification code sent. Check your text messages.');
+    } catch (requestError) {
+      setPhoneError(firebaseSignInErrorMessage(requestError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmPhoneCode = async (event) => {
+    event.preventDefault();
+    if (!phoneSignIn || busy) return;
+    setBusy(true);
+    setPhoneError('');
+    try {
+      const idToken = await confirmPhoneSignInCode(phoneSignIn.confirmation, phoneCode.trim());
+      clearPhoneSignInVerifier(phoneSignIn);
+      await onPhoneAuthenticate(idToken);
+    } catch (requestError) {
+      setPhoneError(firebaseSignInErrorMessage(requestError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const closePhoneSignIn = () => {
+    clearPhoneSignInVerifier(phoneSignIn);
+    setPhoneSignIn(null);
+    setPhoneCode('');
+    setPhoneError('');
+    setPhoneOpen(false);
   };
 
   return (
@@ -200,6 +261,86 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
             <p className="google-setup-note" role="status">
               Add the Firebase web app settings to client/.env.local to enable Google sign-in.
             </p>
+          )}
+          {isFirebaseConfigured && (
+            <>
+              {!phoneOpen ? (
+                <button
+                  className="phone-signin-toggle"
+                  type="button"
+                  onClick={() => {
+                    setPhoneOpen(true);
+                    setPhoneError('');
+                  }}
+                  disabled={busy}
+                >
+                  Continue with phone
+                </button>
+              ) : (
+                <form className="phone-signin-panel" onSubmit={confirmPhoneCode}>
+                  {!phoneSignIn ? (
+                    <>
+                      <label>
+                        Phone number
+                        <input
+                          type="tel"
+                          value={phoneNumber}
+                          onChange={(event) => setPhoneNumber(event.target.value)}
+                          autoComplete="tel"
+                          placeholder="+14155550123"
+                          required
+                        />
+                      </label>
+                      <button
+                        className="auth-submit"
+                        type="button"
+                        onClick={requestPhoneCode}
+                        disabled={busy}
+                      >
+                        {busy ? 'Sending code…' : 'Text me a sign-in code'} <ArrowRight size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <label>
+                        Verification code
+                        <input
+                          type="text"
+                          value={phoneCode}
+                          onChange={(event) => setPhoneCode(event.target.value)}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          placeholder="Enter the code from your text"
+                          maxLength={10}
+                          required
+                        />
+                      </label>
+                      <button
+                        className="auth-submit"
+                        type="submit"
+                        disabled={busy || !phoneCode.trim()}
+                      >
+                        {busy ? 'Verifying…' : 'Verify and sign in'} <ArrowRight size={16} />
+                      </button>
+                    </>
+                  )}
+                  {phoneError && (
+                    <p className="phone-signin-message" role="status">
+                      {phoneError}
+                    </p>
+                  )}
+                  <button
+                    className="phone-signin-back"
+                    type="button"
+                    onClick={closePhoneSignIn}
+                    disabled={busy}
+                  >
+                    Use another sign-in method
+                  </button>
+                  <div id="smartdesk-phone-recaptcha" />
+                </form>
+              )}
+            </>
           )}
           <p className="auth-switch">
             {isSignup ? 'Already have an account?' : 'New to SmartDesk?'}{' '}

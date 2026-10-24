@@ -33,15 +33,14 @@ function getFirebaseAdminAuth() {
     );
   }
   if (serviceAccount.project_id !== projectId) {
-    throw configurationError('FIREBASE_PROJECT_ID must match the project_id in the service account JSON.');
+    throw configurationError(
+      'FIREBASE_PROJECT_ID must match the project_id in the service account JSON.',
+    );
   }
 
   const app =
     getApps().find((candidate) => candidate.name === 'smartdesk-firebase-auth') ||
-    initializeApp(
-      { credential: cert(serviceAccount), projectId },
-      'smartdesk-firebase-auth',
-    );
+    initializeApp({ credential: cert(serviceAccount), projectId }, 'smartdesk-firebase-auth');
   adminAuth = getAuth(app);
   return adminAuth;
 }
@@ -57,20 +56,24 @@ export async function verifyFirebaseIdToken(idToken) {
     throw error;
   }
 
-  if (
-    !decodedToken.uid ||
-    !decodedToken.email ||
-    decodedToken.email_verified !== true ||
-    decodedToken.firebase?.sign_in_provider !== 'google.com'
-  ) {
-    const error = new Error('Firebase did not return a verified Google account.');
+  const provider = decodedToken.firebase?.sign_in_provider;
+  const verifiedGoogle =
+    provider === 'google.com' && decodedToken.email && decodedToken.email_verified === true;
+  const verifiedPhone =
+    provider === 'phone' && /^\+[1-9]\d{7,14}$/.test(decodedToken.phone_number || '');
+  if (!decodedToken.uid || (!verifiedGoogle && !verifiedPhone)) {
+    const error = new Error('Firebase did not return a verified Google account or phone number.');
     error.status = 401;
     throw error;
   }
 
   return {
     uid: decodedToken.uid,
-    email: decodedToken.email.trim().toLowerCase(),
-    name: String(decodedToken.name || '').trim().slice(0, 60),
+    email: decodedToken.email?.trim().toLowerCase() || '',
+    phone: verifiedPhone ? decodedToken.phone_number : '',
+    name: String(decodedToken.name || '')
+      .trim()
+      .slice(0, 60),
+    provider,
   };
 }

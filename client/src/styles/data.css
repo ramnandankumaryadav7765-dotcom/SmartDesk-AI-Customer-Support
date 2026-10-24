@@ -70,6 +70,14 @@ tbody tr:last-child td {
   color: #49554d;
   font-weight: 600;
 }
+.order-contact-note {
+  display: block;
+  margin: 4px 0 0 30px;
+  color: #8791a1;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 .tiny-avatar {
   width: 23px;
   height: 23px;

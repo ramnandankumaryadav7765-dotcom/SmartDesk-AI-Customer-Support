@@ -83,13 +83,17 @@ export function accountRole(user) {
 }
 
 export function publicUser(user) {
+  const email = user.email || '';
+  const hiddenPhoneAccountEmail =
+    user.authProvider === 'firebase-phone' && email.endsWith('@phone.smartdesk.invalid');
   return {
     id: user.id,
     name: user.name,
-    email: user.email,
+    email: hiddenPhoneAccountEmail ? '' : email,
     role: accountRole(user),
     contactEmail: user.contactEmail || '',
     phone: user.phone || '',
+    verifiedPhone: user.verifiedPhone || '',
     address: user.address || '',
     profilePicture: user.profilePicture || '',
   };

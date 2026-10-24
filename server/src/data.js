@@ -7,6 +7,13 @@ const validDateOnly = (value) => {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
 
+export const normalizePhone = (value) =>
+  String(value || '')
+    .trim()
+    .replace(/[\s()-]/g, '');
+
+export const isValidPhone = (value) => /^\+[1-9]\d{7,14}$/.test(normalizePhone(value));
+
 export const makeTicket = (body, ownerId) => ({
   id: createId('t'),
   ownerId,
@@ -74,6 +81,7 @@ export const makeOrder = (body, ownerId) => {
     email: String(body.email || '')
       .trim()
       .toLowerCase(),
+    phone: normalizePhone(body.phone),
     items,
     itemPolicies,
     serviceType: itemPolicies[0]?.serviceType || 'Standard product',

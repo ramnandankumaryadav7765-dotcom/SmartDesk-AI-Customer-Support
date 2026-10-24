@@ -827,7 +827,10 @@ select:focus-visible {
   font: inherit;
   font-size: 13px;
   font-weight: 650;
-  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
 }
 .google-button-shell:hover:not(:disabled) {
   border-color: #c7cedd;
@@ -838,8 +841,15 @@ select:focus-visible {
   outline: 3px solid rgba(91, 103, 196, 0.28);
   outline-offset: 2px;
 }
-.google-button-shell:disabled { cursor: wait; opacity: 0.62; }
-.google-button-shell svg { width: 19px; height: 19px; flex: none; }
+.google-button-shell:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+.google-button-shell svg {
+  width: 19px;
+  height: 19px;
+  flex: none;
+}
 .google-setup-note {
   color: #758198;
   font-size: 12px;
@@ -851,6 +861,86 @@ select:focus-visible {
   border: 1px dashed #dfe3ed;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.65);
+}
+.phone-signin-toggle,
+.phone-signin-back {
+  display: inline-flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dfe3ed;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #47556d;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease;
+}
+.phone-signin-toggle:hover:not(:disabled),
+.phone-signin-back:hover:not(:disabled) {
+  border-color: #c5c9f0;
+  background: #f6f6ff;
+  color: #4f59c9;
+}
+.phone-signin-toggle:disabled,
+.phone-signin-back:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+.phone-signin-panel {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #e2e6f0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.phone-signin-panel label {
+  display: grid;
+  gap: 7px;
+  color: #36445b;
+  font-size: 12px;
+  font-weight: 750;
+}
+.phone-signin-panel input {
+  width: 100%;
+  min-height: 45px;
+  padding: 0 12px;
+  border: 1px solid #e1e5ee;
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+  color: #243149;
+  font: inherit;
+  font-size: 14px;
+}
+.phone-signin-panel input:focus {
+  border-color: #7f85e2;
+  box-shadow: 0 0 0 4px rgba(100, 106, 218, 0.11);
+}
+.phone-signin-message {
+  margin: 0;
+  color: #626f88;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.phone-signin-message[role='status'] {
+  color: #58647b;
+}
+.phone-signin-back {
+  min-height: 34px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 12px;
+}
+#smartdesk-phone-recaptcha {
+  min-height: 0;
 }
 .auth-error {
   margin: 0;

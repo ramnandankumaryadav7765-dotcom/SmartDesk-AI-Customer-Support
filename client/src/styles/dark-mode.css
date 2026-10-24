@@ -309,3 +309,28 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+:root[data-theme='dark'] .phone-signin-toggle,
+:root[data-theme='dark'] .phone-signin-back {
+  border-color: #3a4358;
+  background: #1e2636;
+  color: #d1d8e8;
+}
+:root[data-theme='dark'] .phone-signin-toggle:hover:not(:disabled),
+:root[data-theme='dark'] .phone-signin-back:hover:not(:disabled) {
+  border-color: #5965a5;
+  background: #272f47;
+  color: #e2e5ff;
+}
+:root[data-theme='dark'] .phone-signin-panel {
+  border-color: #343d52;
+  background: rgba(27, 34, 49, .92);
+}
+:root[data-theme='dark'] .phone-signin-panel label { color: #d1d8e8; }
+:root[data-theme='dark'] .phone-signin-panel input {
+  border-color: #3a4358;
+  background: #141b29;
+  color: #edf1fb;
+}
+:root[data-theme='dark'] .phone-signin-panel input::placeholder { color: #8995ab; }
+:root[data-theme='dark'] .phone-signin-message { color: #aab4c7; }

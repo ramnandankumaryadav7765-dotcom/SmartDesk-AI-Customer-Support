@@ -225,8 +225,7 @@ function App() {
     else await refreshCustomerPortal();
   };
 
-  const authenticateWithGoogle = async () => {
-    const idToken = await signInWithGoogle();
+  const authenticateWithFirebaseToken = async (idToken) => {
     try {
       const result = await smartdeskApi.loginWithFirebase(idToken);
       setUser(result.user);
@@ -240,6 +239,9 @@ function App() {
       throw error;
     }
   };
+
+  const authenticateWithGoogle = async () =>
+    authenticateWithFirebaseToken(await signInWithGoogle());
 
   const signOut = async () => {
     assistantRequestId.current += 1;
@@ -456,6 +458,7 @@ function App() {
         <AuthPage
           onAuthenticate={authenticate}
           onGoogleAuthenticate={authenticateWithGoogle}
+          onPhoneAuthenticate={authenticateWithFirebaseToken}
           theme={theme}
           onToggleTheme={toggleTheme}
         />

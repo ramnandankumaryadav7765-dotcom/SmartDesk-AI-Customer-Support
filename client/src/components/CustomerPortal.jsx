@@ -252,8 +252,14 @@ export default function CustomerPortal({
                 />
               </label>
               <div className="customer-contact-note">
-                <span>We’ll reply to</span>
-                <strong>{user.contactEmail || user.email}</strong>
+                <span>Account contact</span>
+                <strong>
+                  {user.contactEmail ||
+                    user.email ||
+                    user.verifiedPhone ||
+                    user.phone ||
+                    'Add an email or phone in your profile'}
+                </strong>
                 {user.phone && <span> · {user.phone}</span>}
                 <button type="button" onClick={onProfile}>
                   Update contact info

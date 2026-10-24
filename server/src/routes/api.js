@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { makeArticle, makeOrder, makeTicket, normalizeItemPolicies } from '../data.js';
+import {
+  isValidPhone,
+  makeArticle,
+  makeOrder,
+  makeTicket,
+  normalizeItemPolicies,
+  normalizePhone,
+} from '../data.js';
 import { findOne, insert, list, remove, storageMode, update } from '../store.js';
 import {
   createSession,
@@ -108,35 +115,53 @@ router.post('/auth/firebase', async (req, res, next) => {
     let user = await findOne('users', { firebaseUid: identity.uid });
 
     if (!user) {
-      const existingEmailUser = await findOne('users', { email: identity.email });
-      if (existingEmailUser?.firebaseUid && existingEmailUser.firebaseUid !== identity.uid) {
+      const existingEmailUser = identity.email
+        ? await findOne('users', { email: identity.email })
+        : null;
+      const existingPhoneUser = identity.phone
+        ? await findOne('users', { verifiedPhone: identity.phone })
+        : null;
+      const existingUser = existingEmailUser || existingPhoneUser;
+      if (existingUser?.firebaseUid && existingUser.firebaseUid !== identity.uid) {
         return res
           .status(409)
-          .json({ error: 'That email is linked to a different Google account.' });
+          .json({ error: 'That sign-in method is linked to a different SmartDesk account.' });
       }
-      if (existingEmailUser) {
+      if (existingUser) {
         user = await update(
           'users',
-          { id: existingEmailUser.id },
+          { id: existingUser.id },
           {
             firebaseUid: identity.uid,
+            ...(identity.phone ? { phone: identity.phone, verifiedPhone: identity.phone } : {}),
             role:
               identity.email === process.env.ADMIN_EMAIL?.trim().toLowerCase()
                 ? 'admin'
                 : 'customer',
-            authProvider: existingEmailUser.passwordHash ? 'password+google' : 'firebase-google',
+            authProvider: identity.phone
+              ? 'firebase-phone'
+              : existingUser.passwordHash
+                ? 'password+google'
+                : 'firebase-google',
             firebaseLinkedAt: new Date().toISOString(),
           },
         );
       } else {
         user = {
           id: randomUUID(),
-          name: identity.name || identity.email.split('@')[0],
-          email: identity.email,
+          name:
+            identity.name ||
+            (identity.phone
+              ? `Customer ${identity.phone.slice(-4)}`
+              : identity.email.split('@')[0]),
+          email:
+            identity.email || `phone-${identity.phone.replace(/\D/g, '')}@phone.smartdesk.invalid`,
+          phone: identity.phone || '',
+          ...(identity.phone ? { verifiedPhone: identity.phone } : {}),
           firebaseUid: identity.uid,
           role:
             identity.email === process.env.ADMIN_EMAIL?.trim().toLowerCase() ? 'admin' : 'customer',
-          authProvider: 'firebase-google',
+          authProvider: identity.phone ? 'firebase-phone' : 'firebase-google',
           createdAt: new Date().toISOString(),
         };
         await insert('users', user);
@@ -226,6 +251,23 @@ async function getConfiguredOwnerId() {
   return owner?.id || null;
 }
 
+async function getCustomerOrders(ownerId, customer) {
+  const orders = await list('orders', { ownerId });
+  const email = String(customer.email || '')
+    .trim()
+    .toLowerCase();
+  const verifiedPhone = normalizePhone(customer.verifiedPhone);
+  return orders.filter((order) => {
+    const emailMatches =
+      email &&
+      String(order.email || '')
+        .trim()
+        .toLowerCase() === email;
+    const phoneMatches = verifiedPhone && normalizePhone(order.phone) === verifiedPhone;
+    return Boolean(emailMatches || phoneMatches);
+  });
+}
+
 router.get('/support/tickets', requireCustomer, async (req, res, next) => {
   try {
     const ownerId = await getConfiguredOwnerId();
@@ -250,7 +292,7 @@ router.get('/support/portal', requireCustomer, async (req, res, next) => {
     }
     const [tickets, orders, knowledge] = await Promise.all([
       list('tickets', { ownerId, customerId: req.user.id }),
-      list('orders', { ownerId, email: req.user.email }),
+      getCustomerOrders(ownerId, req.user),
       list('knowledge', { ownerId }),
     ]);
     return res.json({
@@ -311,7 +353,7 @@ router.post('/support/tickets', requireCustomer, async (req, res, next) => {
       {
         ...req.body,
         customer: req.user.name,
-        email: req.user.contactEmail || req.user.email,
+        email: req.user.contactEmail || req.user.email || '',
         subject,
         message,
         priority: 'normal',
@@ -320,7 +362,7 @@ router.post('/support/tickets', requireCustomer, async (req, res, next) => {
       ownerId,
     );
     ticket.customerId = req.user.id;
-    ticket.phone = req.user.phone;
+    ticket.phone = req.user.verifiedPhone || req.user.phone;
     ticket.updatedAt = ticket.createdAt;
     return res.status(201).json(await insert('tickets', ticket));
   } catch (error) {
@@ -342,9 +384,8 @@ router.post('/support/returns', requireCustomer, async (req, res, next) => {
     const item = String(req.body.item || '').trim();
     const requestType = req.body.requestType === 'exchange' ? 'exchange' : 'return';
     const message = String(req.body.message || '').trim();
-    const order = orderNumber
-      ? await findOne('orders', { ownerId, email: req.user.email, orderNumber })
-      : null;
+    const matchingOrders = orderNumber ? await getCustomerOrders(ownerId, req.user) : [];
+    const order = matchingOrders.find((item) => item.orderNumber === orderNumber);
     if (!order)
       return res.status(404).json({ error: 'We could not find that order under your account.' });
     if (!order.items?.includes(item)) {
@@ -385,7 +426,7 @@ router.post('/support/returns', requireCustomer, async (req, res, next) => {
       ownerId,
     );
     ticket.customerId = req.user.id;
-    ticket.phone = req.user.phone;
+    ticket.phone = req.user.verifiedPhone || req.user.phone;
     ticket.requestType = requestType;
     ticket.item = item;
     ticket.updatedAt = ticket.createdAt;
@@ -409,7 +450,7 @@ router.post('/support/assistant', requireCustomer, async (req, res, next) => {
     }
     const [tickets, orders, articles] = await Promise.all([
       list('tickets', { ownerId, customerId: req.user.id }),
-      list('orders', { ownerId, email: req.user.email }),
+      getCustomerOrders(ownerId, req.user),
       list('knowledge', { ownerId }),
     ]);
     const relevantArticles = findRelevantArticle(question, articles);
@@ -562,8 +603,20 @@ router.get('/orders', async (req, res, next) => {
 
 router.post('/orders', async (req, res, next) => {
   try {
-    if (!req.body.customer?.trim() || !req.body.items?.trim())
-      return res.status(400).json({ error: 'Add a customer and at least one item.' });
+    const email = String(req.body.email || '')
+      .trim()
+      .toLowerCase();
+    const phone = normalizePhone(req.body.phone);
+    if (!req.body.customer?.trim() || !req.body.items?.trim() || (!email && !phone)) {
+      return res
+        .status(400)
+        .json({ error: 'Add a customer, at least one item, and an email or phone number.' });
+    }
+    if ((email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) || (phone && !isValidPhone(phone))) {
+      return res
+        .status(400)
+        .json({ error: 'Enter a valid email address and/or phone number with country code.' });
+    }
     const order = makeOrder(req.body, req.user.id);
     if (await findOne('orders', { ownerId: req.user.id, orderNumber: order.orderNumber }))
       return res.status(409).json({ error: 'That order number already exists in your account.' });
@@ -582,13 +635,16 @@ router.patch('/orders/:orderNumber', async (req, res, next) => {
     const email = String(req.body.email || '')
       .trim()
       .toLowerCase();
+    const phone = normalizePhone(req.body.phone);
     const status = ['Processing', 'Shipped', 'Delivered', 'Cancelled'].includes(req.body.status)
       ? req.body.status
       : null;
     if (
       !status ||
       !customer ||
+      (!email && !phone) ||
       (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ||
+      (phone && !isValidPhone(phone)) ||
       (deliveredAt && !isDateOnly(deliveredAt))
     ) {
       return res
@@ -610,6 +666,7 @@ router.patch('/orders/:orderNumber', async (req, res, next) => {
       status,
       customer,
       email,
+      phone,
       deliveredAt,
       itemPolicies,
       serviceType: itemPolicies[0]?.serviceType || 'Standard product',
