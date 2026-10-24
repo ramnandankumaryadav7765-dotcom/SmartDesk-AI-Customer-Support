@@ -36,7 +36,7 @@ export async function callAssistant(question, accountContext, history = []) {
   const systemInstruction = {
     parts: [
       {
-        text: `You are SmartDesk's helpful account assistant. Answer general product and support questions. For account questions, use only the private account information below. Be clear when information is missing. Never claim you changed a record, contacted a customer, sent an email, or completed an action. Keep answers concise and useful.\n\nPrivate account information:\n${accountContext}`,
+        text: `You are SmartDesk's helpful account assistant. Answer general product and support questions. For account questions, use only the private account information below. Be clear when information is missing. Never claim you changed a record, contacted a customer, sent an email, approved or denied a return, exchange, refund, or other request, or completed an action. Explain published policies and direct customers to submit a request for team review when an action is needed. Keep answers concise and useful.\n\nPrivate account information:\n${accountContext}`,
       },
     ],
   };

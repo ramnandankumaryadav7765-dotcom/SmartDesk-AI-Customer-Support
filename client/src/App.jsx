@@ -29,6 +29,8 @@ function App() {
   const [orders, setOrders] = useState([]);
   const [knowledge, setKnowledge] = useState([]);
   const [customerTickets, setCustomerTickets] = useState([]);
+  const [customerOrders, setCustomerOrders] = useState([]);
+  const [customerKnowledge, setCustomerKnowledge] = useState([]);
   const [customerTicketLoading, setCustomerTicketLoading] = useState(false);
   const [customerTicketError, setCustomerTicketError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
@@ -77,6 +79,21 @@ function App() {
     }
   };
 
+  const refreshCustomerPortal = async () => {
+    setCustomerTicketLoading(true);
+    setCustomerTicketError('');
+    try {
+      const portal = await smartdeskApi.loadCustomerPortal();
+      setCustomerTickets(portal.tickets);
+      setCustomerOrders(portal.orders);
+      setCustomerKnowledge(portal.knowledge);
+    } catch (requestError) {
+      setCustomerTicketError(requestError.message);
+    } finally {
+      setCustomerTicketLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     smartdeskApi
@@ -92,7 +109,7 @@ function App() {
               setError(`${requestError.message} Restart the app with npm run dev.`);
             }
           } else {
-            await refreshCustomerTickets();
+            await refreshCustomerPortal();
           }
         }
       })
@@ -205,7 +222,7 @@ function App() {
     setQuery('');
     setError('');
     if (result.user.role === 'admin') await refresh();
-    else await refreshCustomerTickets();
+    else await refreshCustomerPortal();
   };
 
   const authenticateWithGoogle = async () => {
@@ -217,7 +234,7 @@ function App() {
       setQuery('');
       setError('');
       if (result.user.role === 'admin') await refresh();
-      else await refreshCustomerTickets();
+      else await refreshCustomerPortal();
     } catch (error) {
       await signOutFromFirebase();
       throw error;
@@ -243,6 +260,8 @@ function App() {
     setOrders([]);
     setKnowledge([]);
     setCustomerTickets([]);
+    setCustomerOrders([]);
+    setCustomerKnowledge([]);
     setCustomerTicketError('');
     setSelectedId(null);
     setReply('');
@@ -268,6 +287,17 @@ function App() {
     const saved = await smartdeskApi.createSupportTicket(ticket);
     setCustomerTickets((items) => [saved, ...items]);
     return true;
+  };
+
+  const createCustomerReturnRequest = async (request) => {
+    const saved = await smartdeskApi.requestReturn(request);
+    setCustomerTickets((items) => [saved, ...items]);
+    return true;
+  };
+
+  const askCustomerAssistant = async (question, history) => {
+    const result = await smartdeskApi.askCustomerAssistant(question, history);
+    return result;
   };
 
   const askAssistant = async (question, history) => {
@@ -367,6 +397,12 @@ function App() {
     setNotice('Order saved to your workspace.');
   };
 
+  const updateOrderPolicy = async (orderNumber, details) => {
+    const updated = await smartdeskApi.updateOrderPolicy(orderNumber, details);
+    setOrders((items) => items.map((item) => (item.orderNumber === orderNumber ? updated : item)));
+    setNotice('Order service and return policy updated.');
+  };
+
   const createArticle = async (articleData) => {
     try {
       const article = await smartdeskApi.createArticle(articleData);
@@ -433,13 +469,17 @@ function App() {
         <CustomerPortal
           user={user}
           tickets={customerTickets}
+          orders={customerOrders}
+          knowledge={customerKnowledge}
           loading={customerTicketLoading}
           error={customerTicketError}
           theme={theme}
           onToggleTheme={toggleTheme}
           onProfile={() => setShowProfile(true)}
           onSubmit={createCustomerSupportTicket}
-          onRefresh={refreshCustomerTickets}
+          onRefresh={refreshCustomerPortal}
+          onRequestReturn={createCustomerReturnRequest}
+          onAskAssistant={askCustomerAssistant}
         />
         <ProfileModal
           open={showProfile}
@@ -515,7 +555,14 @@ function App() {
             theme={theme}
           />
         )}
-        {page === 'Orders' && <OrdersPage orders={orders} query={query} onCreate={createOrder} />}
+        {page === 'Orders' && (
+          <OrdersPage
+            orders={orders}
+            query={query}
+            onCreate={createOrder}
+            onUpdate={updateOrderPolicy}
+          />
+        )}
         {page === 'Knowledge base' && (
           <KnowledgePage
             knowledge={knowledge}

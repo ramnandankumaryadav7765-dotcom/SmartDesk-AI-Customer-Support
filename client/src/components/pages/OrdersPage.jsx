@@ -1,10 +1,73 @@
 import { useState } from 'react';
-import { ArrowRight, Box, Plus, Truck, X } from 'lucide-react';
+import { ArrowRight, Box, Pencil, Plus, Truck, X } from 'lucide-react';
 import { initial, money } from '../../lib/formatters.js';
 
-export default function OrdersPage({ orders, query, onCreate }) {
+export default function OrdersPage({ orders, query, onCreate, onUpdate }) {
   const [adding, setAdding] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [itemsText, setItemsText] = useState('');
+  const [itemPolicies, setItemPolicies] = useState([]);
   const [error, setError] = useState('');
+
+  const startNewOrder = () => {
+    setEditingOrder(null);
+    setItemsText('');
+    setItemPolicies([]);
+    setError('');
+    setAdding(true);
+  };
+
+  const startEditingOrder = (order) => {
+    setEditingOrder(order);
+    setItemsText(order.items.join(', '));
+    setItemPolicies(
+      order.items.map(
+        (item) =>
+          order.itemPolicies?.find((policy) => policy.item === item) || {
+            item,
+            serviceType: order.serviceType || 'Standard product',
+            returnWindowDays: order.returnWindowDays || 0,
+            exchangeWindowDays: order.exchangeWindowDays || 0,
+          },
+      ),
+    );
+    setError('');
+    setAdding(true);
+  };
+
+  const changeItems = (value) => {
+    setItemsText(value);
+    const names = value
+      .split(/[,\n]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    setItemPolicies((current) =>
+      names.map(
+        (item) =>
+          current.find((policy) => policy.item === item) || {
+            item,
+            serviceType: 'Standard product',
+            returnWindowDays: 0,
+            exchangeWindowDays: 0,
+          },
+      ),
+    );
+  };
+
+  const updateItemPolicy = (index, field, value) => {
+    setItemPolicies((current) =>
+      current.map((policy, policyIndex) =>
+        policyIndex === index ? { ...policy, [field]: value } : policy,
+      ),
+    );
+  };
+
+  const closeModal = () => {
+    setAdding(false);
+    setEditingOrder(null);
+    setItemsText('');
+    setItemPolicies([]);
+  };
   const visible = orders.filter((order) =>
     `${order.orderNumber} ${order.customer} ${order.email} ${order.status} ${order.items?.join(' ')}`
       .toLowerCase()
@@ -15,8 +78,11 @@ export default function OrdersPage({ orders, query, onCreate }) {
     event.preventDefault();
     setError('');
     try {
-      await onCreate(Object.fromEntries(new FormData(event.currentTarget)));
+      const details = Object.fromEntries(new FormData(event.currentTarget));
+      if (editingOrder) await onUpdate(editingOrder.orderNumber, details);
+      else await onCreate(details);
       setAdding(false);
+      setEditingOrder(null);
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -30,7 +96,7 @@ export default function OrdersPage({ orders, query, onCreate }) {
           <h1>Orders</h1>
           <p>Keep order details in your workspace for quick lookups and useful AI answers.</p>
         </div>
-        <button className="primary-button" onClick={() => setAdding(true)}>
+        <button className="primary-button" onClick={startNewOrder}>
           <Plus size={17} /> Add an order
         </button>
       </div>
@@ -56,6 +122,7 @@ export default function OrdersPage({ orders, query, onCreate }) {
                 <th>DATE</th>
                 <th>STATUS</th>
                 <th>TOTAL</th>
+                <th>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -68,7 +135,18 @@ export default function OrdersPage({ orders, query, onCreate }) {
                       <span>{order.customer}</span>
                     </div>
                   </td>
-                  <td className="items-cell">{order.items.join(', ')}</td>
+                  <td className="items-cell">
+                    {order.items.join(', ')}
+                    <small className="order-policy-note">
+                      {(order.itemPolicies || [])
+                        .map(
+                          (policy) =>
+                            `${policy.item}: ${policy.serviceType}, return ${policy.returnWindowDays}d, exchange ${policy.exchangeWindowDays}d`,
+                        )
+                        .join(' · ') ||
+                        `${order.serviceType || 'Standard product'} policy not configured`}
+                    </small>
+                  </td>
                   <td>
                     {new Date(order.placedAt).toLocaleDateString('en-US', {
                       month: 'short',
@@ -81,6 +159,17 @@ export default function OrdersPage({ orders, query, onCreate }) {
                     </span>
                   </td>
                   <td className="order-total">{money(order.total)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="order-policy-edit"
+                      onClick={() => {
+                        startEditingOrder(order);
+                      }}
+                    >
+                      <Pencil size={13} /> Edit policy
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -95,7 +184,7 @@ export default function OrdersPage({ orders, query, onCreate }) {
               </strong>
               <p>Add an order to make it available in your account and to your assistant.</p>
               {!orders.length && (
-                <button className="text-button" onClick={() => setAdding(true)}>
+                <button className="text-button" onClick={startNewOrder}>
                   Add your first order <ArrowRight size={15} />
                 </button>
               )}
@@ -107,7 +196,7 @@ export default function OrdersPage({ orders, query, onCreate }) {
         <Truck size={15} /> Orders are visible only to your signed-in account.
       </p>
       {adding && (
-        <div className="modal-backdrop" onClick={() => setAdding(false)}>
+        <div className="modal-backdrop" onClick={closeModal}>
           <form
             className="new-ticket-modal order-modal"
             onSubmit={submit}
@@ -116,26 +205,30 @@ export default function OrdersPage({ orders, query, onCreate }) {
             <div className="modal-heading">
               <div>
                 <span className="eyebrow">SHOP DATA</span>
-                <h2>Add an order</h2>
-                <p>Save an order so you can find it and ask your assistant about it.</p>
+                <h2>{editingOrder ? `Update ${editingOrder.orderNumber}` : 'Add an order'}</h2>
+                <p>
+                  {editingOrder
+                    ? 'Update its delivery status and service-specific return policy.'
+                    : 'Save an order so you can find it and ask your assistant about it.'}
+                </p>
               </div>
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => setAdding(false)}
-                aria-label="Close"
-              >
+              <button type="button" className="icon-button" onClick={closeModal} aria-label="Close">
                 <X size={18} />
               </button>
             </div>
             <div className="form-two">
               <label>
                 Order number
-                <input name="orderNumber" placeholder="e.g. ORD-1008" />
+                <input
+                  name="orderNumber"
+                  placeholder="e.g. ORD-1008"
+                  defaultValue={editingOrder?.orderNumber || ''}
+                  readOnly={Boolean(editingOrder)}
+                />
               </label>
               <label>
                 Status
-                <select name="status" defaultValue="Processing">
+                <select name="status" defaultValue={editingOrder?.status || 'Processing'}>
                   <option>Processing</option>
                   <option>Shipped</option>
                   <option>Delivered</option>
@@ -146,35 +239,125 @@ export default function OrdersPage({ orders, query, onCreate }) {
             <div className="form-two">
               <label>
                 Customer name
-                <input name="customer" placeholder="Taylor Morgan" required />
+                <input
+                  name="customer"
+                  placeholder="Taylor Morgan"
+                  defaultValue={editingOrder?.customer || ''}
+                  required
+                />
               </label>
               <label>
                 Email address
-                <input name="email" type="email" placeholder="taylor@example.com" />
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="taylor@example.com"
+                  defaultValue={editingOrder?.email || ''}
+                />
               </label>
             </div>
             <label>
-              Items <input name="items" placeholder="Linen shirt, Ceramic mug" required />
+              Items{' '}
+              <input
+                name="items"
+                placeholder="Linen shirt, Ceramic mug"
+                value={itemsText}
+                onChange={(event) => changeItems(event.target.value)}
+                required
+                readOnly={Boolean(editingOrder)}
+              />
             </label>
+            <input type="hidden" name="itemPolicies" value={JSON.stringify(itemPolicies)} />
+            {!!itemPolicies.length && (
+              <section
+                className="order-item-policies"
+                aria-label="Return and exchange policies per item"
+              >
+                <div className="order-item-policies-heading">
+                  <strong>Service policies by item</strong>
+                  <small>Set each product’s service type and request windows separately.</small>
+                </div>
+                {itemPolicies.map((policy, index) => (
+                  <div className="order-item-policy-row" key={`${policy.item}-${index}`}>
+                    <strong title={policy.item}>{policy.item}</strong>
+                    <label>
+                      Service type
+                      <input
+                        value={policy.serviceType}
+                        maxLength={80}
+                        onChange={(event) =>
+                          updateItemPolicy(index, 'serviceType', event.target.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      Return days
+                      <input
+                        type="number"
+                        min="0"
+                        max="365"
+                        value={policy.returnWindowDays}
+                        onChange={(event) =>
+                          updateItemPolicy(index, 'returnWindowDays', event.target.value)
+                        }
+                      />
+                    </label>
+                    <label>
+                      Exchange days
+                      <input
+                        type="number"
+                        min="0"
+                        max="365"
+                        value={policy.exchangeWindowDays}
+                        onChange={(event) =>
+                          updateItemPolicy(index, 'exchangeWindowDays', event.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                ))}
+              </section>
+            )}
             <div className="form-two">
               <label>
                 Order total
-                <input name="total" type="number" min="0" step="0.01" placeholder="0.00" />
+                <input
+                  name="total"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  defaultValue={editingOrder?.total ?? ''}
+                  readOnly={Boolean(editingOrder)}
+                />
               </label>
               <label>
                 Tracking number
-                <input name="tracking" placeholder="Optional" />
+                <input
+                  name="tracking"
+                  placeholder="Optional"
+                  defaultValue={editingOrder?.tracking || ''}
+                  readOnly={Boolean(editingOrder)}
+                />
               </label>
             </div>
+            <label>
+              Delivered on
+              <input
+                name="deliveredAt"
+                type="date"
+                defaultValue={editingOrder?.deliveredAt?.slice(0, 10) || ''}
+              />
+            </label>
             {error && (
               <p className="auth-error" role="alert">
                 {error}
               </p>
             )}
             <div className="modal-footer">
-              <span>Order details are stored in your account.</span>
+              <span>Return windows start from the delivery date.</span>
               <button className="primary-button" type="submit">
-                Save order <ArrowRight size={15} />
+                {editingOrder ? 'Save policy' : 'Save order'} <ArrowRight size={15} />
               </button>
             </div>
           </form>

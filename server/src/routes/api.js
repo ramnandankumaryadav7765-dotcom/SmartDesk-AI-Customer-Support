@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { makeArticle, makeOrder, makeTicket } from '../data.js';
+import { makeArticle, makeOrder, makeTicket, normalizeItemPolicies } from '../data.js';
 import { findOne, insert, list, remove, storageMode, update } from '../store.js';
 import {
   createSession,
@@ -20,6 +20,11 @@ import { verifyFirebaseIdToken } from '../services/firebase-auth.js';
 import { allowedClientOrigins } from '../origins.js';
 
 const router = Router();
+const isDateOnly = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
 
 router.get('/health', (_req, res) =>
   res.json({
@@ -235,6 +240,57 @@ router.get('/support/tickets', requireCustomer, async (req, res, next) => {
   }
 });
 
+router.get('/support/portal', requireCustomer, async (req, res, next) => {
+  try {
+    const ownerId = await getConfiguredOwnerId();
+    if (!ownerId) {
+      return res
+        .status(503)
+        .json({ error: 'Customer support is not configured yet. Contact the business owner.' });
+    }
+    const [tickets, orders, knowledge] = await Promise.all([
+      list('tickets', { ownerId, customerId: req.user.id }),
+      list('orders', { ownerId, email: req.user.email }),
+      list('knowledge', { ownerId, visibility: 'public' }),
+    ]);
+    return res.json({
+      tickets,
+      orders: orders.map(
+        ({
+          orderNumber,
+          items,
+          itemPolicies,
+          status,
+          placedAt,
+          deliveredAt,
+          serviceType,
+          returnWindowDays,
+          exchangeWindowDays,
+        }) => ({
+          orderNumber,
+          items,
+          itemPolicies,
+          status,
+          placedAt,
+          deliveredAt,
+          serviceType,
+          returnWindowDays,
+          exchangeWindowDays,
+        }),
+      ),
+      knowledge: knowledge.map(({ id, title, category, content, updatedAt }) => ({
+        id,
+        title,
+        category,
+        content,
+        updatedAt,
+      })),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.post('/support/tickets', requireCustomer, async (req, res, next) => {
   try {
     const ownerId = await getConfiguredOwnerId();
@@ -267,6 +323,147 @@ router.post('/support/tickets', requireCustomer, async (req, res, next) => {
     ticket.phone = req.user.phone;
     ticket.updatedAt = ticket.createdAt;
     return res.status(201).json(await insert('tickets', ticket));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/support/returns', requireCustomer, async (req, res, next) => {
+  try {
+    const ownerId = await getConfiguredOwnerId();
+    if (!ownerId) {
+      return res
+        .status(503)
+        .json({ error: 'Customer support is not configured yet. Contact the business owner.' });
+    }
+    const orderNumber = String(req.body.orderNumber || '')
+      .trim()
+      .toUpperCase();
+    const item = String(req.body.item || '').trim();
+    const requestType = req.body.requestType === 'exchange' ? 'exchange' : 'return';
+    const message = String(req.body.message || '').trim();
+    const order = orderNumber
+      ? await findOne('orders', { ownerId, email: req.user.email, orderNumber })
+      : null;
+    if (!order)
+      return res.status(404).json({ error: 'We could not find that order under your account.' });
+    if (!order.items?.includes(item)) {
+      return res.status(400).json({ error: 'Choose an item from this order.' });
+    }
+    const itemPolicy = order.itemPolicies?.find((policy) => policy.item === item) || order;
+    const allowedDays =
+      requestType === 'exchange' ? itemPolicy.exchangeWindowDays : itemPolicy.returnWindowDays;
+    if (!allowedDays || order.status !== 'Delivered' || !order.deliveredAt) {
+      return res
+        .status(400)
+        .json({ error: `This order is not currently eligible for a ${requestType}.` });
+    }
+    if (order.deliveredAt > new Date().toISOString().slice(0, 10)) {
+      return res.status(400).json({ error: 'This order has not reached its delivery date yet.' });
+    }
+    const lastEligibleDay = new Date(`${order.deliveredAt}T00:00:00.000Z`);
+    lastEligibleDay.setUTCDate(lastEligibleDay.getUTCDate() + allowedDays);
+    if (new Date().toISOString().slice(0, 10) > lastEligibleDay.toISOString().slice(0, 10)) {
+      return res
+        .status(400)
+        .json({ error: `The ${requestType} window for this order has closed.` });
+    }
+    if (message.length > 3000)
+      return res.status(400).json({ error: 'Keep your note under 3,000 characters.' });
+
+    const subject = `${requestType === 'return' ? 'Return' : 'Exchange'} request — ${item}`;
+    const ticket = makeTicket(
+      {
+        customer: req.user.name,
+        email: req.user.email,
+        orderNumber,
+        subject,
+        message: message || `Customer requested a ${requestType} for ${item}.`,
+        priority: 'normal',
+        channel: 'Customer portal',
+      },
+      ownerId,
+    );
+    ticket.customerId = req.user.id;
+    ticket.phone = req.user.phone;
+    ticket.requestType = requestType;
+    ticket.item = item;
+    ticket.updatedAt = ticket.createdAt;
+    return res.status(201).json(await insert('tickets', ticket));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/support/assistant', requireCustomer, async (req, res, next) => {
+  try {
+    const ownerId = await getConfiguredOwnerId();
+    if (!ownerId) {
+      return res
+        .status(503)
+        .json({ error: 'Customer support is not configured yet. Contact the business owner.' });
+    }
+    const question = String(req.body.message || '').trim();
+    if (!question || question.length > 2000) {
+      return res.status(400).json({ error: 'Write a question up to 2,000 characters.' });
+    }
+    const [tickets, orders, articles] = await Promise.all([
+      list('tickets', { ownerId, customerId: req.user.id }),
+      list('orders', { ownerId, email: req.user.email }),
+      list('knowledge', { ownerId, visibility: 'public' }),
+    ]);
+    const relevantArticles = findRelevantArticle(question, articles);
+    const context = JSON.stringify({
+      customer: { name: req.user.name },
+      orders: orders.map(
+        ({
+          orderNumber,
+          items,
+          itemPolicies,
+          status,
+          placedAt,
+          deliveredAt,
+          serviceType,
+          returnWindowDays,
+          exchangeWindowDays,
+        }) => ({
+          orderNumber,
+          items,
+          itemPolicies,
+          status,
+          placedAt,
+          deliveredAt,
+          serviceType,
+          returnWindowDays,
+          exchangeWindowDays,
+        }),
+      ),
+      supportRequests: tickets.slice(0, 10).map(({ subject, status, messages }) => ({
+        subject,
+        status,
+        latestReply:
+          [...(messages || [])].reverse().find((message) => message.role === 'staff')?.text || '',
+      })),
+      helpArticles: (relevantArticles.length ? relevantArticles : articles)
+        .slice(0, 8)
+        .map(({ title, category, content }) => ({
+          title,
+          category,
+          content: String(content || '').slice(0, 1200),
+        })),
+    }).slice(0, 14000);
+    const history = Array.isArray(req.body.history)
+      ? req.body.history
+          .filter(
+            (item) => ['user', 'assistant'].includes(item?.role) && typeof item?.text === 'string',
+          )
+          .slice(-8)
+      : [];
+    const answer = await callAssistant(question, context, history);
+    return res.json({
+      answer,
+      references: relevantArticles.map(({ id, title }) => ({ id, title })),
+    });
   } catch (error) {
     return next(error);
   }
@@ -378,6 +575,54 @@ router.post('/orders', async (req, res, next) => {
   }
 });
 
+router.patch('/orders/:orderNumber', async (req, res, next) => {
+  try {
+    const deliveredAt = String(req.body.deliveredAt || '');
+    const customer = String(req.body.customer || '').trim();
+    const email = String(req.body.email || '')
+      .trim()
+      .toLowerCase();
+    const status = ['Processing', 'Shipped', 'Delivered', 'Cancelled'].includes(req.body.status)
+      ? req.body.status
+      : null;
+    if (
+      !status ||
+      !customer ||
+      (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ||
+      (deliveredAt && !isDateOnly(deliveredAt))
+    ) {
+      return res
+        .status(400)
+        .json({ error: 'Check the order status, delivery date, and return windows.' });
+    }
+    const filter = {
+      ownerId: req.user.id,
+      orderNumber: String(req.params.orderNumber).toUpperCase(),
+    };
+    const existing = await findOne('orders', filter);
+    if (!existing) return res.status(404).json({ error: 'Order not found.' });
+    const itemPolicies = normalizeItemPolicies(existing.items || [], req.body.itemPolicies, {
+      serviceType: existing.serviceType,
+      returnWindowDays: existing.returnWindowDays,
+      exchangeWindowDays: existing.exchangeWindowDays,
+    });
+    const updated = await update('orders', filter, {
+      status,
+      customer,
+      email,
+      deliveredAt,
+      itemPolicies,
+      serviceType: itemPolicies[0]?.serviceType || 'Standard product',
+      returnWindowDays: itemPolicies[0]?.returnWindowDays || 0,
+      exchangeWindowDays: itemPolicies[0]?.exchangeWindowDays || 0,
+    });
+    if (!updated) return res.status(404).json({ error: 'Order not found.' });
+    return res.json(updated);
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.get('/knowledge', async (req, res, next) => {
   try {
     res.json(await list('knowledge', { ownerId: req.user.id }));
@@ -409,6 +654,7 @@ router.patch('/knowledge/:id', async (req, res, next) => {
       {
         title,
         category: String(req.body.category || 'General').trim() || 'General',
+        visibility: req.body.visibility === 'public' ? 'public' : 'private',
         content,
         updatedAt: new Date().toISOString(),
       },

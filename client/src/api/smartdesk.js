@@ -31,7 +31,11 @@ export const smartdeskApi = {
   logout: () => sendJson('/auth/logout', {}),
   updateProfile: (profile) => sendJson('/profile', profile, 'PATCH'),
   loadMyTickets: () => request('/support/tickets'),
+  loadCustomerPortal: () => request('/support/portal'),
   createSupportTicket: (ticket) => sendJson('/support/tickets', ticket),
+  requestReturn: (details) => sendJson('/support/returns', details),
+  askCustomerAssistant: (message, history = []) =>
+    sendJson('/support/assistant', { message, history: history.slice(-8) }),
   async loadWorkspace() {
     const [overview, tickets, orders, knowledge] = await Promise.all([
       request('/overview'),
@@ -43,6 +47,8 @@ export const smartdeskApi = {
   },
   createTicket: (ticket) => sendJson('/tickets', ticket),
   createOrder: (order) => sendJson('/orders', order),
+  updateOrderPolicy: (orderNumber, details) =>
+    sendJson(`/orders/${encodeURIComponent(orderNumber)}`, details, 'PATCH'),
   setTicketStatus: (id, status) => sendJson(`/tickets/${id}`, { status }, 'PATCH'),
   saveReply: (id, text) => sendJson(`/tickets/${id}/reply`, { text }),
   draftReply: (message) => sendJson('/assistant/draft', { message }),

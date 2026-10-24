@@ -14,9 +14,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
     setSaving(true);
     try {
       const articleData = Object.fromEntries(new FormData(event.currentTarget));
-      const saved = editing
-        ? await onUpdate(editing.id, articleData)
-        : await onCreate(articleData);
+      const saved = editing ? await onUpdate(editing.id, articleData) : await onCreate(articleData);
       if (saved) {
         setAdding(false);
         setEditing(null);
@@ -87,6 +85,11 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
             </div>
             <div className="knowledge-category">{article.category}</div>
             <h3>{article.title}</h3>
+            <span
+              className={`article-visibility-pill ${article.visibility === 'public' ? 'public' : ''}`}
+            >
+              {article.visibility === 'public' ? 'Customer help center' : 'Private article'}
+            </span>
             <p>{article.content}</p>
             <div className="knowledge-card-footer">
               <span>
@@ -159,11 +162,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
               >
                 <Trash2 size={15} /> {deleting ? 'Deleting…' : 'Delete'}
               </button>
-              <button
-                className="primary-button"
-                onClick={startEditing}
-                disabled={deleting}
-              >
+              <button className="primary-button" onClick={startEditing} disabled={deleting}>
                 <Pencil size={15} /> Edit article
               </button>
             </div>
@@ -218,6 +217,15 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
                 defaultValue={editing?.category || 'General'}
               />
             </label>
+            <label className="article-customer-visibility">
+              <input
+                name="visibility"
+                type="checkbox"
+                value="public"
+                defaultChecked={editing?.visibility === 'public'}
+              />
+              Show this article in the customer help center
+            </label>
             <label>
               Article content
               <textarea
@@ -229,7 +237,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
               />
             </label>
             <div className="modal-footer">
-              <span>Only your signed-in workspace can access this article.</span>
+              <span>Public articles appear in the customer help center.</span>
               <button className="primary-button" type="submit" disabled={saving}>
                 {saving ? 'Saving…' : editing ? 'Save changes' : 'Save article'}
                 <ArrowRight size={15} />

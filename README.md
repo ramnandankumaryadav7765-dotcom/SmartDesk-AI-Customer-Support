@@ -8,6 +8,8 @@ SmartDesk is a learning project for a small-shop support portal. Customers creat
 - Editable account profile with contact details and a resized profile picture
 - Logout confirmation before ending a session
 - Customer request portal with account-scoped ticket history and staff replies
+- Customer order lookup with item-specific return and exchange windows
+- Customer help center for owner-published articles and a customer-scoped Gemini assistant
 - Owner-only management access for tickets, orders, knowledge articles, and AI tools
 - Scrypt password hashing; passwords are never stored as plain text
 - Owner-scoped tickets, orders, and knowledge articles
@@ -103,7 +105,9 @@ Google sign-in creates a Firebase Auth identity and a SmartDesk account on first
 
 ## Account data and AI
 
-The API lets customers read and create only tickets tied to their own account. The configured owner manages all support tickets, manually entered orders, and knowledge articles. The owner's AI assistant receives the owner's saved records and relevant policy articles. It cannot send replies or change records. Review its suggestions before taking action.
+Customers can read and create only tickets tied to their account. They can see orders matched to their sign-in email, submit return or exchange requests only while the selected item's configured window is open, read articles the owner marked public, and ask Gemini about public articles and their own orders and tickets. Each request is still reviewed by the owner. The owner manages tickets, manually entered orders, item-level service policies, and articles. Articles are private by default; mark an article public in the editor to show it in the customer help center.
+
+To configure returns or exchanges, open an order and choose **Edit policy**. Set its status to **Delivered**, enter the delivery date, then set each item's service type and return/exchange days. A zero-day window disables that request type for the item. Customer order matching uses the email address used to sign in, so enter that same email when you save the order.
 
 If `GEMINI_API_KEY` is not configured, account and data features still work, but AI answers are unavailable. Data is held in memory only when MongoDB is not configured; in that mode accounts and changes reset when the server stops.
 
