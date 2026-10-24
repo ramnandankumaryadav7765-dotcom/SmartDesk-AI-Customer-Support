@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { ArrowUpRight, CheckCircle2, Clock3, LifeBuoy, MessageCircle, Send } from 'lucide-react';
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  Clock3,
+  LifeBuoy,
+  MessageCircle,
+  RefreshCw,
+  Send,
+} from 'lucide-react';
 import ThemeToggle from './ThemeToggle.jsx';
 import UserAvatar from './UserAvatar.jsx';
 
@@ -19,6 +27,7 @@ export default function CustomerPortal({
   onToggleTheme,
   onProfile,
   onSubmit,
+  onRefresh,
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
@@ -140,6 +149,16 @@ export default function CustomerPortal({
                 <h2>Your requests</h2>
                 <p>Private to your account</p>
               </div>
+              <button
+                className="customer-ticket-refresh"
+                type="button"
+                onClick={onRefresh}
+                disabled={loading}
+                aria-label="Refresh your support requests"
+                title="Refresh requests"
+              >
+                <RefreshCw size={15} className={loading ? 'is-spinning' : ''} />
+              </button>
               <span className="customer-ticket-count">{tickets.length}</span>
             </div>
             {error && (
@@ -152,9 +171,9 @@ export default function CustomerPortal({
             ) : tickets.length ? (
               <div className="customer-ticket-list">
                 {tickets.map((ticket) => {
-                  const staffReply = [...(ticket.messages || [])]
-                    .reverse()
-                    .find((message) => message.role === 'staff');
+                  const staffReplies = (ticket.messages || []).filter(
+                    (message) => message.role === 'staff',
+                  );
                   const resolved = ticket.status === 'resolved';
                   const statusLabel =
                     ticket.status === 'pending' ? 'Pending' : resolved ? 'Resolved' : 'Open';
@@ -172,13 +191,15 @@ export default function CustomerPortal({
                         <span className="customer-order-reference">Order {ticket.orderNumber}</span>
                       )}
                       <p className="customer-ticket-preview">{ticket.preview}</p>
-                      {staffReply ? (
-                        <details className="customer-staff-reply">
-                          <summary>
-                            <MessageCircle size={14} /> Support replied
-                          </summary>
-                          <p>{staffReply.text}</p>
-                        </details>
+                      {staffReplies.length ? (
+                        <div className="customer-staff-replies" aria-label="Replies from support">
+                          <strong className="customer-staff-reply-label">
+                            <MessageCircle size={14} /> Replies from support
+                          </strong>
+                          {staffReplies.map((message, index) => (
+                            <p key={`${message.createdAt || 'reply'}-${index}`}>{message.text}</p>
+                          ))}
+                        </div>
                       ) : (
                         <div className="customer-waiting-note">Our team will reply here.</div>
                       )}

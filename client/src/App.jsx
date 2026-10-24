@@ -64,8 +64,8 @@ function App() {
     setError('');
   };
 
-  const refreshCustomerTickets = async () => {
-    setCustomerTicketLoading(true);
+  const refreshCustomerTickets = async ({ silent = false } = {}) => {
+    if (!silent) setCustomerTicketLoading(true);
     setCustomerTicketError('');
     try {
       const myTickets = await smartdeskApi.loadMyTickets();
@@ -73,7 +73,7 @@ function App() {
     } catch (requestError) {
       setCustomerTicketError(requestError.message);
     } finally {
-      setCustomerTicketLoading(false);
+      if (!silent) setCustomerTicketLoading(false);
     }
   };
 
@@ -109,6 +109,25 @@ function App() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (user?.role !== 'customer') return undefined;
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        refreshCustomerTickets({ silent: true });
+      }
+    };
+    const interval = window.setInterval(refreshWhenVisible, 15000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [user?.role]);
 
   useEffect(() => {
     if (!notice) return;
@@ -420,6 +439,7 @@ function App() {
           onToggleTheme={toggleTheme}
           onProfile={() => setShowProfile(true)}
           onSubmit={createCustomerSupportTicket}
+          onRefresh={refreshCustomerTickets}
         />
         <ProfileModal
           open={showProfile}
