@@ -42,13 +42,14 @@ export function firebaseSignInErrorMessage(error) {
     return 'Enable Google as a sign-in provider in Firebase Authentication, then try again.';
   }
   if (error?.code === 'auth/unauthorized-domain') {
-    return 'Add localhost to Firebase Authentication’s authorized domains, then try again.';
+    const hostname = typeof window === 'undefined' ? 'your app domain' : window.location.hostname;
+    return `Add ${hostname} to Firebase Authentication’s authorized domains, then try again.`;
   }
   if (error?.code === 'auth/invalid-api-key') {
     return 'Check the Firebase API key in client/.env.local, then restart SmartDesk.';
   }
   if (error?.code === 'auth/popup-blocked') {
-    return 'Your browser blocked the Google sign-in window. Allow pop-ups for localhost and try again.';
+    return 'Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.';
   }
   if (error?.code === 'auth/popup-closed-by-user') {
     return 'The Google sign-in window was closed before sign-in finished.';

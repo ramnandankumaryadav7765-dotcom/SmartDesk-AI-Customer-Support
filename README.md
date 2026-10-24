@@ -35,7 +35,7 @@ Deploy this project as **one Render Web Service** from the repository root. The 
 In Render, create a **New → Web Service** connected to this repository. Leave **Root Directory** blank and use:
 
 ```text
-Build Command: npm ci && npm --prefix server ci && npm --prefix client ci && npm --prefix client run build
+Build Command: npm ci && npm --prefix server ci --omit=dev && npm --prefix client ci --include=dev && npm --prefix client run build
 Start Command: npm --prefix server start
 ```
 
