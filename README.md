@@ -13,7 +13,7 @@ SmartDesk is a learning project for a small-shop support workspace. Users create
 - Gemini-generated ticket reply drafts with retry handling for temporary server overloads
 - Responsive dashboard, inbox, orders, and knowledge views
 
-New accounts start with empty workspace data. The app does not seed sample customers, orders, or policies. Records from the earlier demo that have no account owner remain in MongoDB but are not shown to signed-in accounts.
+New accounts start with empty workspace data. The app does not seed sample customers, orders, or policies. Legacy demo tickets, orders, and knowledge articles without an account owner have been removed from MongoDB.
 
 ## Start the app
 
