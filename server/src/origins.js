@@ -9,9 +9,10 @@ const localDevelopmentOrigins = [
 
 export function allowedClientOrigins() {
   const configured = process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN;
+  const origins = configured ? configured.split(',') : localDevelopmentOrigins;
+  if (process.env.RENDER_EXTERNAL_URL) origins.push(process.env.RENDER_EXTERNAL_URL);
   return new Set(
-    (configured ? configured.split(',') : localDevelopmentOrigins)
-      .map((origin) => origin.trim())
+    origins.map((origin) => origin.trim())
       .filter(Boolean),
   );
 }

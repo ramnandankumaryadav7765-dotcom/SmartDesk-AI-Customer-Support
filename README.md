@@ -28,6 +28,39 @@ npm run dev
 
 Open `http://localhost:5173`. The first screen is sign-in; choose **Create an account** to create a private workspace.
 
+## Deploy to Render
+
+Deploy this project as **one Render Web Service** from the repository root. The service builds the React client and serves it from Express alongside `/api`, keeping the website and API on the same origin so the session cookie works without cross-site cookie settings.
+
+In Render, create a **New → Web Service** connected to this repository. Leave **Root Directory** blank and use:
+
+```text
+Build Command: npm ci && npm --prefix server ci && npm --prefix client ci && npm --prefix client run build
+Start Command: npm --prefix server start
+```
+
+Set these environment variables in the Render service:
+
+```text
+NODE_ENV=production
+MONGODB_URI=<your MongoDB Atlas connection string>
+MONGODB_DB=SmartDesk-AI-Customer-Support
+GEMINI_API_KEY=<your Gemini API key>
+GEMINI_MODEL=gemini-3.8-flash
+FIREBASE_PROJECT_ID=<your Firebase project ID>
+FIREBASE_SERVICE_ACCOUNT_PATH=/etc/secrets/firebase-service-account.json
+VITE_FIREBASE_API_KEY=<your Firebase web API key>
+VITE_FIREBASE_AUTH_DOMAIN=<your-project>.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=<your Firebase project ID>
+VITE_FIREBASE_STORAGE_BUCKET=<your Firebase storage bucket>
+VITE_FIREBASE_MESSAGING_SENDER_ID=<your Firebase sender ID>
+VITE_FIREBASE_APP_ID=<your Firebase web app ID>
+```
+
+Upload the Firebase Admin key in **Environment → Secret Files** with filename `firebase-service-account.json` and the complete downloaded JSON as its contents. Do not upload that key to Git. Render provides `PORT` and `RENDER_EXTERNAL_URL`; the server uses the assigned port and automatically allows its own public URL. Add that same public hostname to **Firebase Authentication → Settings → Authorized domains** after the first deployment.
+
+The client variables prefixed with `VITE_` are included in the browser build and are not private credentials. Never put the Gemini key, MongoDB URI, or Firebase Admin key in a `VITE_` variable.
+
 ## Environment settings
 
 The backend reads `server/.env`. Copy `server/.env.example` to `server/.env`, then set your MongoDB Atlas URI, Gemini API key, and Firebase project ID:

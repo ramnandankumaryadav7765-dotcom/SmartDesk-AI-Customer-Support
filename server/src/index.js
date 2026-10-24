@@ -5,7 +5,7 @@ import { closeStore, connectStore } from './store.js';
 const port = Number(process.env.PORT || 4000);
 await connectStore();
 
-const server = createApp().listen(port, () => {
+const server = createApp().listen(port, '0.0.0.0', () => {
   console.log(`SmartDesk API ready at http://localhost:${port}`);
 });
 
