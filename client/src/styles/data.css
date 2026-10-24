@@ -353,18 +353,6 @@ tbody tr:last-child td {
 .order-policy-edit:hover {
   background: #f2f7f3;
 }
-.article-customer-visibility {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center;
-  gap: 9px !important;
-  color: #52685a;
-}
-.article-customer-visibility input {
-  width: 16px;
-  height: 16px;
-  accent-color: #487a54;
-}
 @media (max-width: 650px) {
   .order-item-policy-row {
     grid-template-columns: 1fr 1fr;

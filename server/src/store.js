@@ -28,7 +28,6 @@ export async function connectStore() {
     db.collection('orders').createIndex({ ownerId: 1, orderNumber: 1 }, { unique: true }),
     db.collection('orders').createIndex({ ownerId: 1, email: 1, placedAt: -1 }),
     db.collection('knowledge').createIndex({ ownerId: 1, id: 1 }, { unique: true }),
-    db.collection('knowledge').createIndex({ ownerId: 1, visibility: 1, updatedAt: -1 }),
   ]);
   console.log(`Connected to MongoDB database "${db.databaseName}".`);
   return 'mongodb';

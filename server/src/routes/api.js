@@ -251,7 +251,7 @@ router.get('/support/portal', requireCustomer, async (req, res, next) => {
     const [tickets, orders, knowledge] = await Promise.all([
       list('tickets', { ownerId, customerId: req.user.id }),
       list('orders', { ownerId, email: req.user.email }),
-      list('knowledge', { ownerId, visibility: 'public' }),
+      list('knowledge', { ownerId }),
     ]);
     return res.json({
       tickets,
@@ -410,7 +410,7 @@ router.post('/support/assistant', requireCustomer, async (req, res, next) => {
     const [tickets, orders, articles] = await Promise.all([
       list('tickets', { ownerId, customerId: req.user.id }),
       list('orders', { ownerId, email: req.user.email }),
-      list('knowledge', { ownerId, visibility: 'public' }),
+      list('knowledge', { ownerId }),
     ]);
     const relevantArticles = findRelevantArticle(question, articles);
     const context = JSON.stringify({
@@ -654,7 +654,6 @@ router.patch('/knowledge/:id', async (req, res, next) => {
       {
         title,
         category: String(req.body.category || 'General').trim() || 'General',
-        visibility: req.body.visibility === 'public' ? 'public' : 'private',
         content,
         updatedAt: new Date().toISOString(),
       },

@@ -61,7 +61,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
         <div>
           <div className="eyebrow">YOUR ANSWER LIBRARY</div>
           <h1>Knowledge base</h1>
-          <p>Save the trusted answers your assistant can use across your workspace.</p>
+          <p>Save guidance for your assistant and the customer help center.</p>
         </div>
         <button className="primary-button" onClick={startAdding}>
           <Plus size={16} /> Add an article
@@ -85,11 +85,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
             </div>
             <div className="knowledge-category">{article.category}</div>
             <h3>{article.title}</h3>
-            <span
-              className={`article-visibility-pill ${article.visibility === 'public' ? 'public' : ''}`}
-            >
-              {article.visibility === 'public' ? 'Customer help center' : 'Private article'}
-            </span>
+            <span className="article-visibility-pill public">Customer help center</span>
             <p>{article.content}</p>
             <div className="knowledge-card-footer">
               <span>
@@ -217,15 +213,6 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
                 defaultValue={editing?.category || 'General'}
               />
             </label>
-            <label className="article-customer-visibility">
-              <input
-                name="visibility"
-                type="checkbox"
-                value="public"
-                defaultChecked={editing?.visibility === 'public'}
-              />
-              Show this article in the customer help center
-            </label>
             <label>
               Article content
               <textarea
@@ -237,7 +224,7 @@ export default function KnowledgePage({ knowledge, query = '', onCreate, onUpdat
               />
             </label>
             <div className="modal-footer">
-              <span>Public articles appear in the customer help center.</span>
+              <span>Articles are available in the customer help center and AI answers.</span>
               <button className="primary-button" type="submit" disabled={saving}>
                 {saving ? 'Saving…' : editing ? 'Save changes' : 'Save article'}
                 <ArrowRight size={15} />

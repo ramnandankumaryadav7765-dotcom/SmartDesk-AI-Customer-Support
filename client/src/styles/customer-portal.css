@@ -102,30 +102,77 @@
   font-size: 14px;
 }
 .customer-help-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 19px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
 }
-.customer-help-links a {
-  display: inline-flex;
+.customer-help-link {
+  display: flex;
+  min-height: 116px;
   align-items: center;
-  gap: 7px;
-  border: 1px solid #e3eae4;
-  border-radius: 999px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.8);
-  color: #526b58;
-  font-size: 11px;
-  font-weight: 700;
+  gap: 13px;
+  border: 1px solid transparent;
+  border-radius: 17px;
+  padding: 17px;
   text-decoration: none;
   transition:
-    background 0.18s ease,
-    transform 0.18s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
 }
-.customer-help-links a:hover {
-  background: #edf5ee;
-  transform: translateY(-1px);
+.customer-help-link.orders {
+  border-color: #c9ead2;
+  background: linear-gradient(130deg, #e2f8e8 0%, #c5f0d3 56%, #e4f7ff 100%);
+  color: #174c2b;
+}
+.customer-help-link.knowledge {
+  border-color: #cddcff;
+  background: linear-gradient(130deg, #e8f0ff 0%, #d2e0ff 55%, #ecebff 100%);
+  color: #203d78;
+}
+.customer-help-link.ai {
+  border-color: #e3d1f4;
+  background: linear-gradient(130deg, #f4eaff 0%, #e5d3ff 55%, #ffe5f2 100%);
+  color: #542c75;
+}
+.customer-help-link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(40, 65, 47, 0.12);
+  filter: saturate(1.08);
+}
+.customer-help-link:focus-visible {
+  outline: 3px solid #517fdf;
+  outline-offset: 3px;
+}
+.customer-shortcut-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+.customer-shortcut-copy {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+}
+.customer-shortcut-copy strong {
+  font: 700 15px var(--display);
+  letter-spacing: -0.25px;
+}
+.customer-shortcut-copy small {
+  max-width: 240px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.5;
+  opacity: 0.78;
+}
+.customer-help-link > svg {
+  flex: none;
+  opacity: 0.76;
 }
 .customer-portal-grid {
   display: grid;
@@ -805,18 +852,6 @@
 .order-policy-edit:hover {
   background: #f2f7f3;
 }
-.article-customer-visibility {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center;
-  gap: 9px !important;
-  color: #52685a;
-}
-.article-customer-visibility input {
-  width: 16px;
-  height: 16px;
-  accent-color: #487a54;
-}
 :root[data-theme='dark'] .customer-portal {
   background:
     radial-gradient(ellipse at 12% 0%, rgba(31, 55, 39, 0.44), transparent 34rem), #101522;
@@ -913,12 +948,22 @@
   color: #9ed9ae;
 }
 :root[data-theme='dark'] .customer-help-links a {
-  border-color: #343d52;
-  background: #1b2231;
-  color: #b9d5bf;
+  color: #eef3ff;
 }
-:root[data-theme='dark'] .customer-help-links a:hover {
-  background: #22372a;
+:root[data-theme='dark'] .customer-help-link.orders {
+  border-color: #3d694a;
+  background: linear-gradient(130deg, #1c3928, #244c34 56%, #203d4a);
+}
+:root[data-theme='dark'] .customer-help-link.knowledge {
+  border-color: #3e527b;
+  background: linear-gradient(130deg, #202e4a, #293d67 56%, #36324e);
+}
+:root[data-theme='dark'] .customer-help-link.ai {
+  border-color: #634a79;
+  background: linear-gradient(130deg, #352747, #46325e 56%, #4b304a);
+}
+:root[data-theme='dark'] .customer-shortcut-icon {
+  background: rgba(255, 255, 255, 0.12);
 }
 :root[data-theme='dark'] .customer-self-service {
   border-color: #30394c;
@@ -1078,8 +1123,21 @@
   .customer-article-grid {
     grid-template-columns: 1fr;
   }
-  .customer-help-links a {
-    font-size: 10px;
+  .customer-help-links {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .customer-help-link {
+    min-height: 88px;
+    border-radius: 14px;
+    padding: 13px;
+  }
+  .customer-shortcut-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .customer-shortcut-copy strong {
+    font-size: 14px;
   }
   .customer-request-card,
   .customer-ticket-panel {

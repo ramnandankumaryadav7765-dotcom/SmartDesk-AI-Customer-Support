@@ -97,7 +97,6 @@ export const makeArticle = (body, ownerId) => ({
   ownerId,
   title: String(body.title || '').trim(),
   category: String(body.category || 'General').trim(),
-  visibility: body.visibility === 'public' ? 'public' : 'private',
   updatedAt: new Date().toISOString(),
   content: String(body.content || '').trim(),
 });

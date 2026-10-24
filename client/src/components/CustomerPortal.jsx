@@ -183,14 +183,35 @@ export default function CustomerPortal({
           <h1>How can we help, {user.name.split(/\s+/)[0]}?</h1>
           <p>Send us a message and our support team will get back to you here.</p>
           <nav className="customer-help-links" aria-label="Customer help shortcuts">
-            <a href="#orders-help">
-              <PackageCheck size={14} /> Orders & returns
+            <a className="customer-help-link orders" href="#orders-help">
+              <span className="customer-shortcut-icon">
+                <PackageCheck size={22} />
+              </span>
+              <span className="customer-shortcut-copy">
+                <strong>Orders & returns</strong>
+                <small>Check delivery details and request an eligible return or exchange.</small>
+              </span>
+              <ArrowUpRight size={18} />
             </a>
-            <a href="#help-center">
-              <BookOpen size={14} /> Help center
+            <a className="customer-help-link knowledge" href="#help-center">
+              <span className="customer-shortcut-icon">
+                <BookOpen size={22} />
+              </span>
+              <span className="customer-shortcut-copy">
+                <strong>Help center</strong>
+                <small>Browse product, service, and policy articles from our team.</small>
+              </span>
+              <ArrowUpRight size={18} />
             </a>
-            <a href="#ask-assistant">
-              <Sparkles size={14} /> Ask AI
+            <a className="customer-help-link ai" href="#ask-assistant">
+              <span className="customer-shortcut-icon">
+                <Sparkles size={22} />
+              </span>
+              <span className="customer-shortcut-copy">
+                <strong>Ask AI</strong>
+                <small>Get a quick answer about your services or order.</small>
+              </span>
+              <ArrowUpRight size={18} />
             </a>
           </nav>
         </section>
