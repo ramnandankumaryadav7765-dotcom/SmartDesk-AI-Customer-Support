@@ -1,14 +1,16 @@
 # SmartDesk — AI Customer Support
 
-SmartDesk is a learning project for a small-shop support workspace. Users create an account, then manage their own support tickets, orders, and knowledge articles. A workspace assistant can answer general questions and use only the signed-in account's data when responding about its records.
+SmartDesk is a learning project for a small-shop support portal. Customers create accounts, submit support requests, and follow replies. A configured business owner has an admin dashboard for all tickets, orders, knowledge articles, and the account-aware AI assistant.
 
 ## Features
 
 - Sign-up, sign-in, and sign-out with an HTTP-only session cookie
 - Editable account profile with contact details and a resized profile picture
 - Logout confirmation before ending a session
+- Customer request portal with account-scoped ticket history and staff replies
+- Owner-only management access for tickets, orders, knowledge articles, and AI tools
 - Scrypt password hashing; passwords are never stored as plain text
-- Account-scoped tickets, orders, and knowledge articles
+- Owner-scoped tickets, orders, and knowledge articles
 - Create tickets, save internal replies, and resolve or reopen conversations
 - Add orders and knowledge articles to your own workspace
 - Gemini assistant for general questions and account-aware answers
@@ -28,7 +30,7 @@ npm --prefix client install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The first screen is sign-in; choose **Create an account** to create a private workspace.
+Open `http://localhost:5173`. New sign-ups are customer accounts. Configure the existing owner email as `ADMIN_EMAIL` to open the owner dashboard.
 
 ## Deploy to Render
 
@@ -51,6 +53,7 @@ GEMINI_API_KEY=<your Gemini API key>
 GEMINI_MODEL=gemini-3.8-flash
 FIREBASE_PROJECT_ID=<your Firebase project ID>
 FIREBASE_SERVICE_ACCOUNT_PATH=/etc/secrets/firebase-service-account.json
+ADMIN_EMAIL=<the email address of your existing owner account>
 VITE_FIREBASE_API_KEY=<your Firebase web API key>
 VITE_FIREBASE_AUTH_DOMAIN=<your-project>.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=<your Firebase project ID>
@@ -75,8 +78,11 @@ GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-3.8-flash
 FIREBASE_PROJECT_ID=your-firebase-project-id
 FIREBASE_SERVICE_ACCOUNT_PATH=./firebase-service-account.json
+ADMIN_EMAIL=owner@example.com
 CLIENT_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175
 ```
+
+Set `ADMIN_EMAIL` to the email address of your existing owner account. Existing account data stays attached to that account. New sign-ups receive customer access; they cannot access the owner dashboard or other customers' records. Customers submit requests in the portal, and the owner replies from the admin inbox. For a request tied to an order, the customer can include its order number; contact details are taken from their profile.
 
 Create `client/.env.local` from the Firebase web app configuration:
 
@@ -97,7 +103,7 @@ Google sign-in creates a Firebase Auth identity and a SmartDesk account on first
 
 ## Account data and AI
 
-The API filters ticket, order, and knowledge operations by the signed-in account ID. The assistant receives only that account's saved workspace records and relevant policy articles. It cannot send replies or change records. Review its suggestions before taking action.
+The API lets customers read and create only tickets tied to their own account. The configured owner manages all support tickets, manually entered orders, and knowledge articles. The owner's AI assistant receives the owner's saved records and relevant policy articles. It cannot send replies or change records. Review its suggestions before taking action.
 
 If `GEMINI_API_KEY` is not configured, account and data features still work, but AI answers are unavailable. Data is held in memory only when MongoDB is not configured; in that mode accounts and changes reset when the server stops.
 

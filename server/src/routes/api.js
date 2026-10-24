@@ -8,7 +8,9 @@ import {
   getSessionUser,
   hashPassword,
   publicUser,
+  requireAdmin,
   requireAuth,
+  requireCustomer,
   setSessionCookie,
   clearSessionCookie,
   verifyPassword,
@@ -42,11 +44,17 @@ router.post('/auth/signup', async (req, res, next) => {
       return res.status(400).json({ error: 'Use a password between 8 and 128 characters.' });
     if (await findOne('users', { email }))
       return res.status(409).json({ error: 'An account already exists for that email.' });
+    if (email === process.env.ADMIN_EMAIL?.trim().toLowerCase()) {
+      return res
+        .status(403)
+        .json({ error: 'The owner account cannot be created through customer sign-up.' });
+    }
 
     const user = {
       id: randomUUID(),
       name,
       email,
+      role: 'customer',
       passwordHash: hashPassword(password),
       createdAt: new Date().toISOString(),
     };
@@ -97,7 +105,9 @@ router.post('/auth/firebase', async (req, res, next) => {
     if (!user) {
       const existingEmailUser = await findOne('users', { email: identity.email });
       if (existingEmailUser?.firebaseUid && existingEmailUser.firebaseUid !== identity.uid) {
-        return res.status(409).json({ error: 'That email is linked to a different Google account.' });
+        return res
+          .status(409)
+          .json({ error: 'That email is linked to a different Google account.' });
       }
       if (existingEmailUser) {
         user = await update(
@@ -105,6 +115,10 @@ router.post('/auth/firebase', async (req, res, next) => {
           { id: existingEmailUser.id },
           {
             firebaseUid: identity.uid,
+            role:
+              identity.email === process.env.ADMIN_EMAIL?.trim().toLowerCase()
+                ? 'admin'
+                : 'customer',
             authProvider: existingEmailUser.passwordHash ? 'password+google' : 'firebase-google',
             firebaseLinkedAt: new Date().toISOString(),
           },
@@ -115,6 +129,8 @@ router.post('/auth/firebase', async (req, res, next) => {
           name: identity.name || identity.email.split('@')[0],
           email: identity.email,
           firebaseUid: identity.uid,
+          role:
+            identity.email === process.env.ADMIN_EMAIL?.trim().toLowerCase() ? 'admin' : 'customer',
           authProvider: 'firebase-google',
           createdAt: new Date().toISOString(),
         };
@@ -127,7 +143,9 @@ router.post('/auth/firebase', async (req, res, next) => {
     return res.json({ user: publicUser(user) });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(409).json({ error: 'This Google account is already linked to another user.' });
+      return res
+        .status(409)
+        .json({ error: 'This Google account is already linked to another user.' });
     }
     if (error.status) return res.status(error.status).json({ error: error.message });
     return next(error);
@@ -158,7 +176,9 @@ router.use(requireAuth);
 router.patch('/profile', async (req, res, next) => {
   try {
     const name = String(req.body.name || '').trim();
-    const contactEmail = String(req.body.contactEmail || '').trim().toLowerCase();
+    const contactEmail = String(req.body.contactEmail || '')
+      .trim()
+      .toLowerCase();
     const phone = String(req.body.phone || '').trim();
     const address = String(req.body.address || '').trim();
     const profilePicture = String(req.body.profilePicture || '');
@@ -177,7 +197,9 @@ router.patch('/profile', async (req, res, next) => {
       (profilePicture &&
         !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(profilePicture))
     ) {
-      return res.status(400).json({ error: 'Choose a smaller JPEG, PNG, or WebP profile picture.' });
+      return res
+        .status(400)
+        .json({ error: 'Choose a smaller JPEG, PNG, or WebP profile picture.' });
     }
 
     const user = await update(
@@ -191,6 +213,66 @@ router.patch('/profile', async (req, res, next) => {
     return next(error);
   }
 });
+
+async function getConfiguredOwnerId() {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (!adminEmail) return null;
+  const owner = await findOne('users', { email: adminEmail });
+  return owner?.id || null;
+}
+
+router.get('/support/tickets', requireCustomer, async (req, res, next) => {
+  try {
+    const ownerId = await getConfiguredOwnerId();
+    if (!ownerId) {
+      return res
+        .status(503)
+        .json({ error: 'Customer support is not configured yet. Contact the business owner.' });
+    }
+    return res.json(await list('tickets', { ownerId, customerId: req.user.id }));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/support/tickets', requireCustomer, async (req, res, next) => {
+  try {
+    const ownerId = await getConfiguredOwnerId();
+    if (!ownerId) {
+      return res
+        .status(503)
+        .json({ error: 'Customer support is not configured yet. Contact the business owner.' });
+    }
+    const subject = String(req.body.subject || '').trim();
+    const message = String(req.body.message || '').trim();
+    if (!subject || subject.length > 140 || !message || message.length > 5000) {
+      return res
+        .status(400)
+        .json({ error: 'Add a subject and a message (up to 5,000 characters).' });
+    }
+
+    const ticket = makeTicket(
+      {
+        ...req.body,
+        customer: req.user.name,
+        email: req.user.contactEmail || req.user.email,
+        subject,
+        message,
+        priority: 'normal',
+        channel: 'Web',
+      },
+      ownerId,
+    );
+    ticket.customerId = req.user.id;
+    ticket.phone = req.user.phone;
+    ticket.updatedAt = ticket.createdAt;
+    return res.status(201).json(await insert('tickets', ticket));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.use(requireAdmin);
 
 router.get('/overview', async (req, res, next) => {
   try {
@@ -244,7 +326,11 @@ router.patch('/tickets/:id', async (req, res, next) => {
       ? req.body.status
       : null;
     if (!status) return res.status(400).json({ error: 'Choose open, pending, or resolved.' });
-    const ticket = await update('tickets', { id: req.params.id, ownerId: req.user.id }, { status });
+    const ticket = await update(
+      'tickets',
+      { id: req.params.id, ownerId: req.user.id },
+      { status, updatedAt: new Date().toISOString() },
+    );
     if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
     res.json(ticket);
   } catch (error) {
@@ -263,7 +349,7 @@ router.post('/tickets/:id/reply', async (req, res, next) => {
       ...(ticket.messages || []),
       { role: 'staff', text, createdAt: new Date().toISOString() },
     ];
-    res.json(await update('tickets', filter, { messages }));
+    res.json(await update('tickets', filter, { messages, updatedAt: new Date().toISOString() }));
   } catch (error) {
     next(error);
   }
@@ -403,7 +489,9 @@ router.post('/assistant/ask', async (req, res, next) => {
     const account = await accountContext(req.user.id, question);
     const history = Array.isArray(req.body.history)
       ? req.body.history
-          .filter((item) => ['user', 'assistant'].includes(item?.role) && typeof item?.text === 'string')
+          .filter(
+            (item) => ['user', 'assistant'].includes(item?.role) && typeof item?.text === 'string',
+          )
           .slice(-8)
       : [];
     const answer = await callAssistant(question, account.context, history);

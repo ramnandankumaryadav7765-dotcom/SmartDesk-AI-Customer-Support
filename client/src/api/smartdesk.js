@@ -30,6 +30,8 @@ export const smartdeskApi = {
   loginWithFirebase: (idToken) => sendJson('/auth/firebase', { idToken }),
   logout: () => sendJson('/auth/logout', {}),
   updateProfile: (profile) => sendJson('/profile', profile, 'PATCH'),
+  loadMyTickets: () => request('/support/tickets'),
+  createSupportTicket: (ticket) => sendJson('/support/tickets', ticket),
   async loadWorkspace() {
     const [overview, tickets, orders, knowledge] = await Promise.all([
       request('/overview'),
@@ -44,8 +46,10 @@ export const smartdeskApi = {
   setTicketStatus: (id, status) => sendJson(`/tickets/${id}`, { status }, 'PATCH'),
   saveReply: (id, text) => sendJson(`/tickets/${id}/reply`, { text }),
   draftReply: (message) => sendJson('/assistant/draft', { message }),
-  askAssistant: (message, history = []) => sendJson('/assistant/ask', { message, history: history.slice(-8) }),
+  askAssistant: (message, history = []) =>
+    sendJson('/assistant/ask', { message, history: history.slice(-8) }),
   createArticle: (article) => sendJson('/knowledge', article),
-  updateArticle: (id, article) => sendJson(`/knowledge/${encodeURIComponent(id)}`, article, 'PATCH'),
+  updateArticle: (id, article) =>
+    sendJson(`/knowledge/${encodeURIComponent(id)}`, article, 'PATCH'),
   deleteArticle: (id) => request(`/knowledge/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };

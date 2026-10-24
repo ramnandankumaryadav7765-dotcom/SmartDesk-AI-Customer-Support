@@ -52,7 +52,9 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
             <Sparkles size={15} /> SUPPORT THAT THINKS WITH YOU
           </span>
           <h1>Make every customer conversation feel easier.</h1>
-          <p>Your tickets, orders, and trusted answers—together in one calm workspace.</p>
+          <p>
+            Get help with your orders, send a support request, and follow every reply in one place.
+          </p>
         </div>
         <div className="auth-visual" aria-hidden="true">
           <div className="auth-orb orb-a" />
@@ -63,7 +65,7 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
             </span>
             <div>
               <b>A little help, right on time</b>
-              <small>Your workspace assistant is ready</small>
+              <small>Our support team is ready to help</small>
             </div>
             <span className="note-check">✓</span>
           </div>
@@ -71,18 +73,20 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
             <span className="note-pulse" />
             <div>
               <b>Your work stays yours</b>
-              <small>Private account workspace</small>
+              <small>Your support requests stay private</small>
             </div>
           </div>
         </div>
         <div className="auth-story-foot">
           <span>Thoughtful support starts here</span>
-          <span>01 — YOUR WORKSPACE</span>
+          <span>01 — CUSTOMER SUPPORT</span>
         </div>
       </section>
 
       <section className="auth-form-side">
-        <div className="auth-appearance"><ThemeToggle theme={theme} onToggle={onToggleTheme} /></div>
+        <div className="auth-appearance">
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
         <div className="auth-mobile-brand">
           <span className="brand-orbit" aria-hidden="true">
             <i />
@@ -97,11 +101,11 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
               <LockKeyhole size={18} />
             </span>
             <p className="auth-eyebrow">{isSignup ? 'YOUR OWN SPACE' : 'WELCOME BACK'}</p>
-            <h2>{isSignup ? 'Create your account' : 'Sign in to SmartDesk'}</h2>
+            <h2>{isSignup ? 'Create your customer account' : 'Sign in to SmartDesk'}</h2>
             <p className="auth-subtitle">
               {isSignup
-                ? 'Start with a clean, private workspace.'
-                : 'Pick up right where your team left off.'}
+                ? 'Send support requests and follow replies in one place.'
+                : 'Continue to your support account.'}
             </p>
           </div>
           <form className="auth-form" onSubmit={submit}>
@@ -154,11 +158,13 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
               </p>
             )}
             <button className="auth-submit" type="submit" disabled={busy}>
-              {busy ? 'Please wait…' : isSignup ? 'Create my workspace' : 'Sign in'}{' '}
+              {busy ? 'Please wait…' : isSignup ? 'Create customer account' : 'Sign in'}{' '}
               <ArrowRight size={17} />
             </button>
           </form>
-          <div className="auth-divider"><span>or continue with</span></div>
+          <div className="auth-divider">
+            <span>or continue with</span>
+          </div>
           {isFirebaseConfigured ? (
             <button
               className="google-button-shell"
@@ -167,12 +173,28 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
               disabled={busy}
             >
               <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" />
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.27 5.48-4.79 7.18l7.73 6C44.39 38.04 46.98 31.91 46.98 24.55Z" />
-                <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19Z" />
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.73-6c-2.14 1.44-4.89 2.3-8.17 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" />
+                <path
+                  fill="#EA4335"
+                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.27 5.48-4.79 7.18l7.73 6C44.39 38.04 46.98 31.91 46.98 24.55Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 48c6.48 0 11.93-2.13 15.9-5.8l-7.73-6c-2.14 1.44-4.89 2.3-8.17 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"
+                />
               </svg>
-              {busy ? 'Connecting to Google…' : isSignup ? 'Sign up with Google' : 'Continue with Google'}
+              {busy
+                ? 'Connecting to Google…'
+                : isSignup
+                  ? 'Sign up with Google'
+                  : 'Continue with Google'}
             </button>
           ) : (
             <p className="google-setup-note" role="status">
@@ -192,7 +214,7 @@ export default function AuthPage({ onAuthenticate, onGoogleAuthenticate, theme, 
             </button>
           </p>
           <p className="auth-private">
-            <LockKeyhole size={13} /> Your account data stays private to your workspace.
+            <LockKeyhole size={13} /> Your support history is private to your account.
           </p>
         </div>
         <div className="auth-footer">

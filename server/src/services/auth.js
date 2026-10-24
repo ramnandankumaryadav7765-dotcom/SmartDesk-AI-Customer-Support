@@ -72,11 +72,22 @@ export function clearSessionCookie(response) {
   );
 }
 
+export function accountRole(user) {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const email = String(user?.email || '')
+    .trim()
+    .toLowerCase();
+  // The configured owner email is the only source of admin access. A stale
+  // role field in MongoDB must never grant a customer the owner dashboard.
+  return adminEmail && email === adminEmail ? 'admin' : 'customer';
+}
+
 export function publicUser(user) {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
+    role: accountRole(user),
     contactEmail: user.contactEmail || '',
     phone: user.phone || '',
     address: user.address || '',
@@ -93,4 +104,18 @@ export async function requireAuth(request, response, next) {
   } catch (error) {
     return next(error);
   }
+}
+
+export function requireAdmin(request, response, next) {
+  if (request.user?.role !== 'admin') {
+    return response.status(403).json({ error: 'Owner access is required for this area.' });
+  }
+  return next();
+}
+
+export function requireCustomer(request, response, next) {
+  if (request.user?.role !== 'customer') {
+    return response.status(403).json({ error: 'This customer portal is for customer accounts.' });
+  }
+  return next();
 }

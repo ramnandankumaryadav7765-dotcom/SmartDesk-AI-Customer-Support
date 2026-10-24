@@ -5,6 +5,7 @@ import Topbar from './components/Topbar.jsx';
 import NewTicketModal from './components/NewTicketModal.jsx';
 import AuthPage from './components/AuthPage.jsx';
 import ProfileModal from './components/ProfileModal.jsx';
+import CustomerPortal from './components/CustomerPortal.jsx';
 import Toast from './components/Toast.jsx';
 import OverviewPage from './components/pages/OverviewPage.jsx';
 import InboxPage from './components/pages/InboxPage.jsx';
@@ -27,6 +28,9 @@ function App() {
   const [tickets, setTickets] = useState([]);
   const [orders, setOrders] = useState([]);
   const [knowledge, setKnowledge] = useState([]);
+  const [customerTickets, setCustomerTickets] = useState([]);
+  const [customerTicketLoading, setCustomerTicketLoading] = useState(false);
+  const [customerTicketError, setCustomerTicketError] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState('');
   const [reply, setReply] = useState('');
@@ -60,6 +64,19 @@ function App() {
     setError('');
   };
 
+  const refreshCustomerTickets = async () => {
+    setCustomerTicketLoading(true);
+    setCustomerTicketError('');
+    try {
+      const myTickets = await smartdeskApi.loadMyTickets();
+      setCustomerTickets(myTickets);
+    } catch (requestError) {
+      setCustomerTicketError(requestError.message);
+    } finally {
+      setCustomerTicketLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     smartdeskApi
@@ -68,10 +85,14 @@ function App() {
         if (!mounted) return;
         setUser(signedInUser);
         if (signedInUser) {
-          try {
-            await refresh();
-          } catch (requestError) {
-            setError(`${requestError.message} Restart the app with npm run dev.`);
+          if (signedInUser.role === 'admin') {
+            try {
+              await refresh();
+            } catch (requestError) {
+              setError(`${requestError.message} Restart the app with npm run dev.`);
+            }
+          } else {
+            await refreshCustomerTickets();
           }
         }
       })
@@ -164,7 +185,8 @@ function App() {
     setPage('Overview');
     setQuery('');
     setError('');
-    await refresh();
+    if (result.user.role === 'admin') await refresh();
+    else await refreshCustomerTickets();
   };
 
   const authenticateWithGoogle = async () => {
@@ -175,7 +197,8 @@ function App() {
       setPage('Overview');
       setQuery('');
       setError('');
-      await refresh();
+      if (result.user.role === 'admin') await refresh();
+      else await refreshCustomerTickets();
     } catch (error) {
       await signOutFromFirebase();
       throw error;
@@ -200,6 +223,8 @@ function App() {
     setTickets([]);
     setOrders([]);
     setKnowledge([]);
+    setCustomerTickets([]);
+    setCustomerTicketError('');
     setSelectedId(null);
     setReply('');
     setAssistantMessages([]);
@@ -218,6 +243,12 @@ function App() {
       setNotice(requestError.message);
       return false;
     }
+  };
+
+  const createCustomerSupportTicket = async (ticket) => {
+    const saved = await smartdeskApi.createSupportTicket(ticket);
+    setCustomerTickets((items) => [saved, ...items]);
+    return true;
   };
 
   const askAssistant = async (question, history) => {
@@ -376,6 +407,31 @@ function App() {
         <Toast message={notice} />
       </>
     );
+
+  if (user.role === 'customer') {
+    return (
+      <>
+        <CustomerPortal
+          user={user}
+          tickets={customerTickets}
+          loading={customerTicketLoading}
+          error={customerTicketError}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onProfile={() => setShowProfile(true)}
+          onSubmit={createCustomerSupportTicket}
+        />
+        <ProfileModal
+          open={showProfile}
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onSave={saveProfile}
+          onSignOut={signOut}
+        />
+        <Toast message={notice} />
+      </>
+    );
+  }
 
   return (
     <div className="app-shell">
