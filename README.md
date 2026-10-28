@@ -113,7 +113,7 @@ If `GEMINI_API_KEY` is not configured, account and data features still work, but
 
 ## Keep the code tidy
 
-Run `npm run format` to apply the shared Prettier style. Run `npm run format:check` to check formatting. Run `npm run build` to create the frontend production build.
+Run `npm run format` to apply the shared Prettier style. Run `npm run format:check` to check formatting. Run `npm run build` to create the frontend production build .
 
 ## Project layout
 
