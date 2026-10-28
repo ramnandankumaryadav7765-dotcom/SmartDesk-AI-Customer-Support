@@ -105,7 +105,7 @@ Google or phone sign-in creates a Firebase Auth identity and a SmartDesk account
 
 ## Account data and AI
 
-Customers can read and create only tickets tied to their account. They can see orders matched to their verified sign-in email or verified phone number, submit return or exchange requests only while the selected item's configured window is open, read the owner's knowledge articles, and ask Gemini about those articles and their own orders and tickets. Each request is still reviewed by the owner. The owner manages tickets, manually entered orders, item-level service policies, and articles.
+Customers can read and create only tickets tied to their account. They can see orders matched to their verified sign-in email or verified phone number, submit return or exchange requests only while the selected item's configured window is open, read the owner's knowledge articles, and ask Gemini about those articles and their own orders and tickets. Each request is still reviewed by the owner. The owner manages tickets, manually entered orders, item-level service policies, and articles .
 
 To configure returns or exchanges, open an order and choose **Edit policy**. Set its status to **Delivered**, enter the delivery date, then set each item's service type and return/exchange days. A zero-day window disables that request type for the item. To link an order, enter the customer's sign-in email and/or their phone number in international E.164 format (for example, `+14155550123`). Email matching uses the verified Google email or account email; phone matching requires the customer to sign in and verify that exact number by SMS. A profile phone number alone is not treated as verified.
 
